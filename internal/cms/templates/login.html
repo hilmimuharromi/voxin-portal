@@ -1,0 +1,22 @@
+{{define "login"}}<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Masuk · CMS {{.Site.Name}}</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/cms-static/cms.css?v=1">
+</head>
+<body class="login-body">
+<form class="login" method="post" action="/login">
+  <div class="wm big">VO<b>X</b>IN</div>
+  <div class="muted">CMS redaksi {{.Site.Name}}</div>
+  {{if .Err}}<div class="flash err">Email atau password salah.</div>{{end}}
+  <input type="hidden" name="next" value="{{.Next}}">
+  <label class="f">Email<input class="input" type="email" name="email" autocomplete="username" required autofocus></label>
+  <label class="f">Password<input class="input" type="password" name="password" autocomplete="current-password" required></label>
+  <button class="btn primary" type="submit">Masuk</button>
+</form>
+</body>
+</html>
+{{end}}
+{{define "content"}}{{end}}

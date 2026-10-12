@@ -1,0 +1,60 @@
+{{define "layout"}}<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}} · CMS {{.Site.Name}}</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/cms-static/cms.css?v=1">
+<script src="/cms-static/htmx.min.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/"><span class="wm">VO<b>X</b>IN</span><span class="brand-sub">CMS redaksi</span></a>
+    <nav class="nav" aria-label="Menu">
+      <a href="/" {{if eq .Nav "home"}}class="on"{{end}}>Ruang redaksi</a>
+      <a href="/articles" {{if eq .Nav "articles"}}class="on"{{end}}>Artikel{{if and .Review (canPublish .User.Role)}} <span class="count">{{.Review}}</span>{{end}}</a>
+      {{if canPublish .User.Role}}<a href="/analytics" {{if eq .Nav "analytics"}}class="on"{{end}}>Analitik</a>{{end}}
+      {{if canManage .User.Role}}
+      <a href="/regions" {{if eq .Nav "regions"}}class="on"{{end}}>Daerah</a>
+      <a href="/pages" {{if eq .Nav "pages"}}class="on"{{end}}>Halaman wajib</a>
+      <a href="/team" {{if eq .Nav "team"}}class="on"{{end}}>Tim</a>
+      <a href="/settings" {{if eq .Nav "settings"}}class="on"{{end}}>Pengaturan</a>
+      {{end}}
+    </nav>
+    <span class="grow"></span>
+    <form method="post" action="/articles/new"><button class="btn primary small" type="submit">+ Tulis artikel</button></form>
+    <a class="me" href="/team/{{.User.ID}}" title="Profil & password">{{.User.Name}} <span class="muted">· {{roleLabel .User.Role}}</span></a>
+    <a class="btn small ghost" href="{{.BaseURL}}" target="_blank" rel="noopener">Lihat situs</a>
+  </div>
+</header>
+<main class="main">
+  {{if .Flash}}<div class="flash {{if .FlashErr}}err{{end}}" role="status">{{.Flash}}</div>{{end}}
+  {{template "content" .}}
+</main>
+<footer class="foot"><form method="post" action="/logout"><button class="btn ghost small" type="submit">Keluar</button></form></footer>
+<script>
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-copy]'); if (!b) return;
+  var t = document.getElementById(b.getAttribute('data-copy')); var v = t ? (t.value || t.textContent) : b.getAttribute('data-copy');
+  navigator.clipboard && navigator.clipboard.writeText(v).then(function(){ var o=b.textContent; b.textContent='Tersalin'; setTimeout(function(){b.textContent=o},1500); });
+});
+</script>
+</body>
+</html>
+{{end}}
+
+{{define "status"}}<span class="tag st-{{.}}">{{statusLabel .}}</span>{{end}}
+{{define "type"}}<span class="tag ty-{{.}}">{{typeLabel .}}</span>{{end}}
+
+{{define "art-row"}}
+<a class="arow" href="/articles/{{.ID}}">
+  <span class="arow-img">{{if .ImagePath}}<img src="/media/{{.ImagePath}}" alt="" loading="lazy">{{end}}</span>
+  <span class="arow-t">
+    <b>{{if .Title}}{{.Title}}{{else}}(tanpa judul){{end}}</b>
+    <span class="tiny muted">{{template "type" .Type}} {{template "status" .Status}} {{if .CategoryName}}{{.CategoryName}} · {{end}}{{if .AuthorName}}{{.AuthorName}} · {{end}}diubah {{lalu .UpdatedAt}}{{if hasPrefix .EngineRef "engine:"}} · dari engine{{end}}</span>
+  </span>
+</a>
+{{end}}

@@ -1,0 +1,8 @@
+{{define "content"}}{{with .Body}}
+<div class="row-h"><a class="btn small ghost" href="/pages">← Halaman wajib</a><span class="grow"></span><a class="btn small" href="{{$.BaseURL}}/{{.Slug}}" target="_blank" rel="noopener">Buka di situs</a></div>
+<form class="panel" method="post" action="/pages/{{.Slug}}">
+  <label class="f">Judul<input class="input" name="title" value="{{.Title}}" required></label>
+  <label class="f">Isi <span class="hint">Markdown: ## subjudul, **tebal**, - daftar, [teks](https://link)</span><textarea class="input body" name="body" rows="24">{{.BodyMD}}</textarea></label>
+  <div class="row-h"><span class="grow"></span><button class="btn primary" type="submit">Simpan</button></div>
+</form>
+{{end}}{{end}}

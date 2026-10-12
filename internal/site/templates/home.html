@@ -1,0 +1,110 @@
+{{define "home"}}{{template "head" .}}{{template "header" .}}
+{{with .Body}}
+<div class="wrap home">
+  {{if .Hero}}
+  <section class="lead-grid" aria-label="Berita utama">
+    {{with .Hero}}
+    <article class="hero">
+      <a class="hero-img ph" href="{{.Path}}" tabindex="-1" aria-hidden="true">
+        {{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 1200}}" srcset="{{srcset .ImagePath .ImageVariants}}" sizes="(max-width: 900px) 100vw, 800px" alt="" width="1200" height="675" fetchpriority="high">{{end}}
+        <span class="over-chip">{{template "chip" .}}</span>
+        {{if .ImageCredit}}<span class="over-credit">{{.ImageCredit}}</span>{{end}}
+      </a>
+      <h1><a href="{{.Path}}">{{hl .Title .Highlight}}</a></h1>
+      {{if .Summary}}<p class="dek">{{.Summary}}</p>{{end}}
+      <div class="meta">{{template "meta-line" .}}</div>
+    </article>
+    {{end}}
+    <aside class="side" aria-label="Berita lain">
+      {{range .Side}}
+      <article class="side-item">
+        {{template "chip" .}}
+        <h2><a href="{{.Path}}">{{.Title}}</a></h2>
+        <div class="meta">{{template "meta-line" .}}</div>
+      </article>
+      {{end}}
+      {{if .Intinya}}
+      <section class="intinya" aria-label="Intinya hari ini">
+        <div class="intinya-h">Intinya hari ini:</div>
+        <ol>{{range $i, $a := .Intinya}}<li><span>{{add $i 1}}</span><a href="{{$a.Path}}">{{$a.Title}}</a></li>{{end}}</ol>
+      </section>
+      {{end}}
+    </aside>
+  </section>
+  {{else}}
+  <section class="empty-state">
+    <h1>Belum ada berita terbit</h1>
+    <p>Redaksi sedang menyiapkan berita pertama. Sementara itu, ikuti kami di media sosial.</p>
+  </section>
+  {{end}}
+
+  {{if .RegionArt}}
+  <section class="block" aria-label="Rubrik daerah">
+    <div class="block-h">
+      <h2 class="display">Dari daerah</h2>
+      <div class="pills">{{range .Regions}}<a class="pill{{if .Partner}} on{{end}}" href="/daerah/{{.Slug}}">{{.Name}}</a>{{end}}</div>
+      <span class="grow"></span>
+      <a class="more" href="/daerah">Semua daerah</a>
+    </div>
+    <div class="grid4">
+      {{range .RegionArt}}
+      <article class="card">
+        <a class="card-img ph" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="250">{{end}}</a>
+        <div class="card-tags">{{if eq .Type "kerja_sama"}}<span class="chip ks">Kerja sama</span>{{else}}<span class="chip line">Liputan</span>{{end}}<span class="place">{{.RegionName}}</span></div>
+        <h3><a href="{{.Path}}">{{.Title}}</a></h3>
+        <div class="meta">{{template "meta-line" .}}</div>
+      </article>
+      {{end}}
+    </div>
+    <p class="note">Konten berlabel <b>KERJA SAMA</b> dibuat bersama pemerintah daerah dan tetap melalui redaksi {{$.Site.Name}}. <a href="/kerja-sama">Kebijakan kerja sama</a></p>
+  </section>
+  {{end}}
+
+  {{if .Facts}}
+  <section class="facts" aria-label="Cek Fakta">
+    <div class="block-h"><h2 class="display">Cek Fakta VOX<span class="accent">I</span>N</h2><span class="muted">Vaksin anti-hoaks. Hanya dengan sumber yang bisa diverifikasi.</span></div>
+    <div class="grid3">
+      {{range .Facts}}<article class="fact"><span class="chip dark">Cek Fakta</span><h3><a href="{{.Path}}">{{.Title}}</a></h3><div class="meta">{{lalu .PublishedAt}}</div></article>{{end}}
+    </div>
+  </section>
+  {{end}}
+
+  {{if .Blocks}}
+  <section class="grid3 cats" aria-label="Per kategori">
+    {{range .Blocks}}
+    <div class="cat-col">
+      <h2 class="display cat-h"><a href="/{{.Cat.Slug}}">{{.Cat.Name}}</a></h2>
+      {{with .Lead}}
+      <a class="card-img ph wide" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 800}}" alt="" loading="lazy" width="800" height="450">{{end}}</a>
+      <h3><a href="{{.Path}}">{{.Title}}</a></h3>
+      {{end}}
+      {{range .Items}}<a class="cat-item" href="{{.Path}}">{{.Title}}</a>{{end}}
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+
+  {{if .Latest}}
+  <section class="block" aria-label="Terbaru">
+    <div class="block-h"><h2 class="display">Terbaru</h2></div>
+    <div class="rows">{{range .Latest}}{{template "row" .}}{{end}}</div>
+  </section>
+  {{end}}
+
+  {{if and .Social $.Site.Settings.Handle}}
+  <section class="block" aria-label="Di medsos">
+    <div class="block-h"><h2 class="display">Versi carousel</h2><span class="muted">Berita yang sama, ringkas dalam satu kali geser. Follow {{$.Site.Settings.Handle}}</span></div>
+    <div class="grid5">
+      {{range .Social}}
+      <a class="social-card" href="{{.Path}}">
+        <span class="sc-img ph">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy">{{end}}</span>
+        <span class="sc-t">{{.Title}}</span>
+        <span class="sc-wm">VO<span>X</span>IN</span>
+      </a>
+      {{end}}
+    </div>
+  </section>
+  {{end}}
+</div>
+{{end}}
+{{template "footer" .}}{{end}}

@@ -1,0 +1,40 @@
+{{define "content"}}
+<div class="row-h"><h1 class="h1">Daerah</h1></div>
+<p class="muted small">Rubrik per kabupaten/kota di voxin.id/daerah. Tandai "Mitra" untuk daerah dengan kerja sama aktif: logonya tampil di halaman rubrik.</p>
+<div class="cols">
+  <section class="panel">
+    <h2>Tambah daerah</h2>
+    <form class="stack" method="post" action="/regions">
+      <label class="f">Nama<input class="input" name="name" placeholder="Kab. Kotawaringin Timur" required></label>
+      <label class="f">Provinsi<input class="input" name="province" placeholder="Kalimantan Tengah"></label>
+      <label class="f">Deskripsi singkat<textarea class="input" name="description" rows="2"></textarea></label>
+      <label class="check"><input type="checkbox" name="partner" value="1"> Mitra kerja sama aktif</label>
+      <button class="btn primary" type="submit">Tambah</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>Daftar</h2>
+    {{range .Body}}
+    <details class="region-item">
+      <summary>{{if .Logo}}<img src="/media/{{.Logo}}" alt="" width="28" height="28">{{end}}<b>{{.Name}}</b> <span class="muted small">{{.Province}} · {{.Articles}} artikel</span>{{if .Partner}} <span class="tag ty-kerja_sama">Mitra</span>{{end}}</summary>
+      <form class="stack" method="post" action="/regions">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <div class="fgrid">
+          <label class="f">Nama<input class="input" name="name" value="{{.Name}}" required></label>
+          <label class="f">Slug<input class="input" name="slug" value="{{.Slug}}"></label>
+          <label class="f">Provinsi<input class="input" name="province" value="{{.Province}}"></label>
+        </div>
+        <label class="f">Deskripsi<textarea class="input" name="description" rows="2">{{.Description}}</textarea></label>
+        <label class="check"><input type="checkbox" name="partner" value="1" {{if .Partner}}checked{{end}}> Mitra kerja sama aktif</label>
+        <div class="row-h"><button class="btn small primary" type="submit">Simpan</button><a class="btn small ghost" href="{{$.BaseURL}}/daerah/{{.Slug}}" target="_blank" rel="noopener">Lihat rubrik</a></div>
+      </form>
+      <form class="row-h" method="post" action="/regions/{{.ID}}/logo" enctype="multipart/form-data">
+        <input class="input small" type="file" name="file" accept="image/png,image/jpeg,image/webp" required aria-label="Logo">
+        <button class="btn small" type="submit">Upload logo</button>
+      </form>
+      <form method="post" action="/regions/{{.ID}}/delete" onsubmit="return confirm('Hapus daerah {{.Name}}?')"><button class="btn ghost small" type="submit">Hapus daerah</button></form>
+    </details>
+    {{else}}<p class="muted small">Belum ada daerah.</p>{{end}}
+  </section>
+</div>
+{{end}}

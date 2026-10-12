@@ -1,0 +1,39 @@
+{{define "content"}}{{with .Body}}{{$u := .U}}
+<div class="row-h">{{if .Manage}}<a class="btn small ghost" href="/team">← Tim</a>{{end}}<h1 class="h1">{{$u.Name}}</h1><span class="grow"></span><a class="btn small" href="{{$.BaseURL}}/penulis/{{$u.Slug}}" target="_blank" rel="noopener">Halaman penulis</a></div>
+<div class="cols">
+  <form class="panel stack" method="post" action="/team/{{$u.ID}}">
+    <h2>Profil</h2>
+    <label class="f">Nama lengkap<input class="input" name="name" value="{{$u.Name}}" required></label>
+    <div class="fgrid">
+      <label class="f">Jabatan<input class="input" name="title" value="{{$u.Title}}"></label>
+      <label class="f">Wilayah tugas<input class="input" name="region" value="{{$u.Region}}"></label>
+    </div>
+    <div class="fgrid">
+      <label class="f">Jenjang UKW<select class="input" name="ukw_level">{{range $l := list "" "Muda" "Madya" "Utama"}}<option value="{{$l}}" {{if eq $l $u.UKWLevel}}selected{{end}}>{{if $l}}{{$l}}{{else}}Belum{{end}}</option>{{end}}</select></label>
+      <label class="f">Nomor sertifikat UKW<input class="input" name="ukw_number" value="{{$u.UKWNumber}}"></label>
+    </div>
+    <label class="f">Bio singkat<textarea class="input" name="bio" rows="3">{{$u.Bio}}</textarea></label>
+    {{if and .Manage (not .Self)}}
+    <div class="fgrid">
+      <label class="f">Peran<select class="input" name="role">{{range .Roles}}<option value="{{.}}" {{if eq . $u.Role}}selected{{end}}>{{roleLabel .}}</option>{{end}}</select></label>
+      <label class="check"><input type="checkbox" name="active" value="1" {{if $u.Active}}checked{{end}}> Akun aktif</label>
+    </div>
+    {{end}}
+    <button class="btn primary" type="submit">Simpan profil</button>
+  </form>
+  <div class="stack">
+    <form class="panel stack" method="post" action="/team/{{$u.ID}}/photo" enctype="multipart/form-data">
+      <h2>Foto</h2>
+      {{if $u.Photo}}<img class="avatar" src="/media/{{$u.Photo}}" alt="">{{end}}
+      <input class="input" type="file" name="file" accept="image/jpeg,image/png,image/webp" required aria-label="Foto profil">
+      <button class="btn small" type="submit">Upload</button>
+    </form>
+    <form class="panel stack" method="post" action="/team/{{$u.ID}}/password">
+      <h2>Password</h2>
+      {{if .Self}}<label class="f">Password lama<input class="input" type="password" name="current" autocomplete="current-password" required></label>{{end}}
+      <label class="f">Password baru <span class="hint">minimal 8 karakter</span><input class="input" type="password" name="new" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn small" type="submit">Ganti password</button>
+    </form>
+  </div>
+</div>
+{{end}}{{end}}

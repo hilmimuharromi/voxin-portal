@@ -1,0 +1,31 @@
+{{define "content"}}{{with .Body}}
+<div class="row-h"><h1 class="h1">Tim redaksi</h1></div>
+<p class="muted small">Profil wartawan (jabatan, wilayah tugas, UKW) tampil di halaman penulis dan menjadi bukti untuk verifikasi Dewan Pers dan syarat kerja sama pemda.</p>
+<div class="cols">
+  <section class="panel tight">
+    <table class="tbl">
+      <thead><tr><th>Nama</th><th>Peran</th><th class="hide-sm">UKW</th><th class="hide-sm">Wilayah</th></tr></thead>
+      <tbody>{{range .Users}}<tr {{if not .Active}}class="off"{{end}}>
+        <td><a class="tlink" href="/team/{{.ID}}">{{.Name}}</a><div class="tiny muted">{{.Email}}{{if not .Active}} · nonaktif{{end}}</div></td>
+        <td class="small">{{roleLabel .Role}}</td>
+        <td class="hide-sm small">{{if .UKWLevel}}{{.UKWLevel}}{{else}}<span class="muted">—</span>{{end}}</td>
+        <td class="hide-sm small">{{.Region}}</td></tr>{{end}}</tbody>
+    </table>
+  </section>
+  <section class="panel">
+    <h2>Tambah anggota</h2>
+    <form class="stack" method="post" action="/team">
+      <label class="f">Nama lengkap<input class="input" name="name" required></label>
+      <label class="f">Email<input class="input" type="email" name="email" required></label>
+      <label class="f">Peran<select class="input" name="role">{{range .Roles}}<option value="{{.}}" {{if eq . "wartawan"}}selected{{end}}>{{roleLabel .}}</option>{{end}}</select></label>
+      <div class="fgrid">
+        <label class="f">Jabatan<input class="input" name="title" placeholder="Wartawan"></label>
+        <label class="f">Wilayah tugas<input class="input" name="region" placeholder="Kab. ..."></label>
+      </div>
+      <label class="f">Password awal <span class="hint">kosongkan untuk dibuatkan otomatis</span><input class="input" type="text" name="password" autocomplete="off"></label>
+      <button class="btn primary" type="submit">Tambah</button>
+      <p class="tiny muted">Wartawan & kontributor hanya bisa menulis dan mengirim ke editor. Editor dan pemred yang menerbitkan.</p>
+    </form>
+  </section>
+</div>
+{{end}}{{end}}

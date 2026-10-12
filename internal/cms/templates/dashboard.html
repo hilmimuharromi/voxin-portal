@@ -1,0 +1,32 @@
+{{define "content"}}{{with .Body}}
+<h1 class="h1">Ruang redaksi</h1>
+<div class="tiles">
+  <div class="tile"><span class="lbl">Perlu ditinjau</span><b>{{index .Counts "review"}}</b><a href="/articles?status=review">Buka antrean</a></div>
+  <div class="tile"><span class="lbl">Terbit hari ini</span><b>{{.PubToday}}</b><span class="tiny muted">target ≥ 8 per hari</span></div>
+  <div class="tile"><span class="lbl">Terjadwal</span><b>{{index .Counts "scheduled"}}</b><a href="/articles?status=scheduled">Lihat</a></div>
+  {{if canPublish $.User.Role}}<div class="tile"><span class="lbl">Tayangan 7 hari</span><b>{{num .Views7}}</b><span class="tiny muted">{{num .Uniq7}} pembaca unik · hari ini {{num .Today}}</span></div>{{end}}
+</div>
+
+<div class="cols">
+  <section class="panel">
+    <div class="panel-h"><h2>Antrean editor</h2><a class="tiny" href="/articles?status=review">Semua</a></div>
+    {{range .Review}}{{template "art-row" .}}{{else}}<p class="muted small">Kosong. Artikel dari wartawan dan dari VOXIN Engine masuk ke sini sebelum terbit.</p>{{end}}
+  </section>
+  <section class="panel">
+    <div class="panel-h"><h2>Tulisanku</h2><a class="tiny" href="/articles?mine=1">Semua</a></div>
+    {{range .Mine}}{{template "art-row" .}}{{else}}<p class="muted small">Belum ada draft. Klik "+ Tulis artikel".</p>{{end}}
+  </section>
+</div>
+<div class="cols">
+  <section class="panel">
+    <div class="panel-h"><h2>Baru terbit</h2><a class="tiny" href="/articles?status=published">Semua</a></div>
+    {{range .Recent}}{{template "art-row" .}}{{else}}<p class="muted small">Belum ada artikel terbit.</p>{{end}}
+  </section>
+  {{if canPublish $.User.Role}}
+  <section class="panel">
+    <div class="panel-h"><h2>Terpopuler 7 hari</h2><a class="tiny" href="/analytics?hari=7">Analitik</a></div>
+    {{range $i, $a := .Top}}<a class="toprow" href="/articles/{{$a.ID}}"><span class="rank">{{add1 $i}}</span><span>{{$a.Title}}</span><b>{{num $a.Views}}</b></a>{{else}}<p class="muted small">Belum ada data tayangan.</p>{{end}}
+  </section>
+  {{end}}
+</div>
+{{end}}{{end}}

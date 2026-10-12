@@ -1,0 +1,36 @@
+{{define "content"}}{{with .Body}}{{$s := .S.Settings}}
+<div class="row-h"><h1 class="h1">Pengaturan situs</h1></div>
+<form class="panel stack" method="post" action="/settings">
+  <h2>Identitas</h2>
+  <div class="fgrid">
+    <label class="f">Nama media<input class="input" name="name" value="{{.S.Name}}" required></label>
+    <label class="f">Tagline<input class="input" name="tagline" value="{{$s.Tagline}}"></label>
+    <label class="f">Akun medsos<input class="input" name="handle" value="{{$s.Handle}}"></label>
+  </div>
+  <label class="f">Deskripsi singkat <span class="hint">tampil di header dan sebagai meta description beranda</span><input class="input" name="about" value="{{$s.About}}"></label>
+  <h2>Perusahaan pers <span class="hint">tampil di footer semua halaman; dicek saat verifikasi Dewan Pers</span></h2>
+  <div class="fgrid">
+    <label class="f">Nama PT<input class="input" name="company" value="{{$s.Company}}"></label>
+    <label class="f">Alamat redaksi<input class="input" name="address" value="{{$s.Address}}"></label>
+    <label class="f">Status verifikasi Dewan Pers<input class="input" name="press_status" value="{{$s.PressStatus}}" placeholder="mis. Terverifikasi administratif dan faktual"></label>
+    <label class="f">Email redaksi<input class="input" type="email" name="email" value="{{$s.Email}}"></label>
+  </div>
+  <h2>Media sosial</h2>
+  <div class="fgrid">
+    <label class="f">Instagram<input class="input" type="url" name="instagram" value="{{$s.Instagram}}"></label>
+    <label class="f">TikTok<input class="input" type="url" name="tiktok" value="{{$s.TikTok}}"></label>
+    <label class="f">Threads<input class="input" type="url" name="threads" value="{{$s.Threads}}"></label>
+  </div>
+  <div class="row-h"><span class="grow"></span><button class="btn primary" type="submit">Simpan</button></div>
+</form>
+
+<section class="panel stack" id="engine">
+  <h2>Sambungan VOXIN Engine</h2>
+  <p class="small muted">Di engine, buka Pengaturan › Koneksi lalu isi <b>Webhook portal</b> dan <b>Token portal</b> dengan nilai di bawah. Artikel dari tombol "Terbitkan di voxin.id" masuk ke antrean editor sebagai <b>Kurasi</b>, tidak langsung terbit.</p>
+  <label class="f">Webhook portal<div class="copy-row"><input class="input" id="eng-url" value="{{.EngineURL}}" readonly><button class="btn small" type="button" data-copy="eng-url">Salin</button></div></label>
+  <label class="f">Token portal
+    {{if $s.EngineToken}}<div class="copy-row"><input class="input" id="eng-tok" value="{{$s.EngineToken}}" readonly><button class="btn small" type="button" data-copy="eng-tok">Salin</button></div>
+    {{else}}<span class="small muted">Belum dibuat.</span>{{end}}</label>
+  <form method="post" action="/settings/token" {{if $s.EngineToken}}onsubmit="return confirm('Buat token baru? Token lama langsung tidak berlaku.')"{{end}}><button class="btn small" type="submit">{{if $s.EngineToken}}Buat token baru{{else}}Buat token{{end}}</button></form>
+</section>
+{{end}}{{end}}

@@ -1,0 +1,39 @@
+{{define "page"}}{{template "head" .}}{{template "header" .}}
+{{with .Body}}
+<div class="wrap art-wrap">
+  <article class="art static">
+    <h1>{{.Title}}</h1>
+    <div class="art-body">{{md .BodyMD}}</div>
+    <div class="muted small">Diperbarui {{tanggal .UpdatedAt}}</div>
+  </article>
+</div>
+{{end}}
+{{template "footer" .}}{{end}}
+
+{{define "regions"}}{{template "head" .}}{{template "header" .}}
+<div class="wrap list-wrap">
+  <div class="list-head"><h1 class="display">Berita daerah</h1><p class="muted">Liputan wartawan daerah dan informasi dari pemerintah daerah mitra.</p></div>
+  <div class="grid3 region-grid">
+    {{range .Body}}
+    <a class="region-card" href="/daerah/{{.Slug}}">
+      {{if .Logo}}<img src="/media/{{.Logo}}" alt="" width="48" height="48">{{else}}<span class="region-dot" aria-hidden="true"></span>{{end}}
+      <span><b>{{.Name}}</b><span class="muted small">{{if .Province}}{{.Province}} · {{end}}{{.Articles}} artikel{{if .Partner}} · Mitra{{end}}</span></span>
+    </a>
+    {{else}}
+    <p class="empty">Belum ada daerah.</p>
+    {{end}}
+  </div>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "notfound"}}{{template "head" .}}{{template "header" .}}
+<div class="wrap list-wrap">
+  <section class="empty-state">
+    <div class="display big404">404</div>
+    <h1>Halaman tidak ditemukan</h1>
+    <p>Mungkin link-nya salah ketik atau artikelnya sudah dipindah.</p>
+    <form class="search big" action="/cari" method="get" role="search"><input type="search" name="q" placeholder="Cari berita" aria-label="Cari berita"><button class="btn dark" type="submit">Cari</button></form>
+    <p><a href="/">Kembali ke beranda</a></p>
+  </section>
+</div>
+{{template "footer" .}}{{end}}

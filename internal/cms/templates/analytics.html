@@ -1,0 +1,35 @@
+{{define "content"}}{{with .Body}}
+<div class="row-h">
+  <h1 class="h1">Analitik</h1><span class="grow"></span>
+  <div class="seg">{{range $d := list "7" "28" "90"}}<a href="/analytics?hari={{$d}}" {{if eq $d (printf "%d" $.Body.Days)}}class="on"{{end}}>{{$d}} hari</a>{{end}}</div>
+</div>
+<p class="muted small">Dihitung sendiri tanpa cookie pelacak: satu tayangan per buka artikel oleh pembaca (bot tidak dihitung), pembaca unik per hari. Angka ini yang dipakai untuk laporan kerja sama.</p>
+<div class="tiles">
+  <div class="tile"><span class="lbl">Tayangan</span><b>{{num .Views}}</b><span class="tiny muted">{{.Days}} hari terakhir</span></div>
+  <div class="tile"><span class="lbl">Pembaca unik harian (jumlah)</span><b>{{num .Uniques}}</b></div>
+  <div class="tile"><span class="lbl">Artikel terbit</span><b>{{num .Published}}</b><span class="tiny muted">total</span></div>
+</div>
+<section class="panel">
+  <h2>Tayangan harian</h2>
+  {{.Chart}}
+  <details><summary class="small">Lihat sebagai tabel</summary>
+    <table class="tbl"><thead><tr><th>Tanggal</th><th class="num">Tayangan</th><th class="num">Pembaca unik</th></tr></thead>
+    <tbody>{{range .Daily}}<tr><td class="small">{{.Day.Format "02-01-2006"}}</td><td class="num">{{num .Views}}</td><td class="num">{{num .Uniques}}</td></tr>{{end}}</tbody></table>
+  </details>
+</section>
+<div class="cols">
+  <section class="panel tight">
+    <h2>Artikel terpopuler</h2>
+    <table class="tbl"><thead><tr><th>Judul</th><th class="num">Tayangan</th></tr></thead>
+    <tbody>{{range .Top}}<tr><td><a class="tlink" href="/articles/{{.ID}}">{{.Title}}</a><div class="tiny muted">{{.CategoryName}}{{if .RegionName}} · {{.RegionName}}{{end}}</div></td><td class="num">{{num .Views}}</td></tr>{{else}}<tr><td colspan="2" class="muted small">Belum ada data.</td></tr>{{end}}</tbody></table>
+  </section>
+  <div class="stack">
+    <section class="panel tight"><h2>Sumber pembaca</h2>
+      <table class="tbl"><tbody>{{range .Sources}}<tr><td class="small">{{.Name}}</td><td class="num">{{num .Views}}</td></tr>{{else}}<tr><td class="muted small">Belum ada data.</td></tr>{{end}}</tbody></table></section>
+    <section class="panel tight"><h2>Per daerah</h2>
+      <table class="tbl"><tbody>{{range .Regions}}<tr><td class="small">{{.Name}}</td><td class="num">{{num .Views}}</td></tr>{{else}}<tr><td class="muted small">Belum ada artikel berdaerah yang dibaca.</td></tr>{{end}}</tbody></table></section>
+    <section class="panel tight"><h2>Per kategori</h2>
+      <table class="tbl"><tbody>{{range .Categories}}<tr><td class="small">{{.Name}}</td><td class="num">{{num .Views}}</td></tr>{{else}}<tr><td class="muted small">Belum ada data.</td></tr>{{end}}</tbody></table></section>
+  </div>
+</div>
+{{end}}{{end}}

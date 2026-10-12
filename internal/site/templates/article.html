@@ -1,0 +1,73 @@
+{{define "article"}}{{template "head" .}}{{template "header" .}}
+{{with .Body}}{{$a := .A}}
+<div class="wrap art-wrap">
+  <article class="art">
+    <div class="art-labels">
+      {{if eq $a.Type "kerja_sama"}}<span class="chip ks">Kerja sama</span>{{else if eq $a.Type "opini"}}<span class="chip line">Opini</span>{{end}}
+      {{if $a.CategoryName}}<a class="chip dark" href="/{{$a.CategorySlug}}">{{$a.CategoryName}}</a>{{end}}
+      {{if and (eq $a.Type "kurasi") $a.SourceName}}<span class="badge">Dirangkum dari {{$a.SourceName}}</span>{{end}}
+      {{if $a.RegionName}}<a class="badge" href="/daerah/{{$a.RegionSlug}}">{{$a.RegionName}}</a>{{end}}
+    </div>
+    <h1>{{hl $a.Title $a.Highlight}}</h1>
+    {{if .Gone}}
+    <div class="gone">
+      <b>Artikel ini telah diturunkan redaksi.</b>
+      {{with $a.UnpublishNote}}<p>Alasan: {{.}}</p>{{end}}
+      <p><a href="/koreksi-hak-jawab">Kebijakan koreksi &amp; hak jawab</a></p>
+    </div>
+    {{else}}
+    {{if $a.Summary}}<p class="dek">{{$a.Summary}}</p>{{end}}
+    <div class="byline">
+      <div>
+        {{if $a.AuthorName}}Oleh <a href="/penulis/{{$a.AuthorSlug}}"><b>{{$a.AuthorName}}</b></a>{{else}}Redaksi {{$.Site.Name}}{{end}}{{if $a.EditorName}} · Editor: <b>{{$a.EditorName}}</b>{{end}}
+        <div class="muted">{{waktu $a.PublishedAt}} · {{minutes $a.BodyMD}} menit baca</div>
+      </div>
+    </div>
+    <div class="share">
+      <a class="btn" href="{{.WAURL}}" rel="noopener" target="_blank">Bagikan ke WhatsApp</a>
+      <button class="btn" type="button" data-copy="{{.ShareURL}}">Salin link</button>
+    </div>
+    {{if $a.ImagePath}}
+    <figure class="art-fig">
+      <img src="{{img $a.ImagePath $a.ImageVariants 1200}}" srcset="{{srcset $a.ImagePath $a.ImageVariants}}" sizes="(max-width: 760px) 100vw, 760px" alt="{{$a.ImageCaption}}" width="1200" height="675" fetchpriority="high">
+      <figcaption>{{with $a.ImageCaption}}{{.}}. {{end}}{{$a.ImageCredit}}</figcaption>
+    </figure>
+    {{end}}
+    <div class="art-body">
+      {{md .Body}}
+    </div>
+    {{with lines $a.Intinya}}
+    <section class="intinya" aria-label="Intinya">
+      <div class="intinya-h">Intinya:</div>
+      <ol>{{range $i, $l := .}}<li><span>{{add $i 1}}</span>{{$l}}</li>{{end}}</ol>
+    </section>
+    {{end}}
+    <div class="art-foot">
+      {{if $a.SourceName}}<div><b>Sumber:</b> {{if $a.SourceURL}}<a href="{{$a.SourceURL}}" rel="noopener nofollow" target="_blank">{{$a.SourceName}}</a>{{else}}{{$a.SourceName}}{{end}}</div>{{end}}
+      {{if $a.Social}}<div>Lihat versi carousel di {{range $p, $u := $a.Social}}<a href="{{$u}}" rel="noopener" target="_blank"><b>{{$p}}</b></a> {{end}}{{$.Site.Settings.Handle}}</div>{{end}}
+      {{if eq $a.Type "kerja_sama"}}<div class="small">Konten ini hasil kerja sama dengan {{if $a.RegionName}}{{$a.RegionName}}{{else}}mitra{{end}} dan tetap disunting redaksi. <a href="/kerja-sama">Kebijakan kerja sama</a></div>{{end}}
+      {{if $a.AIAssisted}}<div class="small muted">Artikel ini disusun dengan bantuan AI dan diperiksa editor sebelum terbit.</div>{{end}}
+    </div>
+    {{if $a.Tags}}<div class="tags">{{range $a.Tags}}<a href="/tag/{{.Slug}}">#{{.Name}}</a>{{end}}</div>{{end}}
+    {{if .Related}}
+    <section class="related" aria-label="Berita terkait">
+      <h2 class="display">Baca juga</h2>
+      {{range .Related}}{{template "row" .}}{{end}}
+    </section>
+    {{end}}
+    {{end}}
+  </article>
+</div>
+{{if not .Gone}}
+<script>
+(function(){
+  try{var d=new URLSearchParams();d.set('a','{{$a.ID}}');d.set('ref',document.referrer||'');
+    if(navigator.sendBeacon){navigator.sendBeacon('/v',d)}else{fetch('/v',{method:'POST',body:d,keepalive:true})}}catch(e){}
+  document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){
+    var t=b.getAttribute('data-copy');var done=function(){b.textContent='Link tersalin';setTimeout(function(){b.textContent='Salin link'},1800)};
+    if(navigator.clipboard){navigator.clipboard.writeText(t).then(done,function(){prompt('Salin link:',t)})}else{prompt('Salin link:',t)}})});
+})();
+</script>
+{{end}}
+{{end}}
+{{template "footer" .}}{{end}}

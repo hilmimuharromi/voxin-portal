@@ -1,0 +1,169 @@
+{{define "content"}}{{with .Body}}{{$a := .A}}
+<div class="row-h">
+  <a class="btn small ghost" href="/articles">← Artikel</a>
+  {{template "type" $a.Type}} {{template "status" $a.Status}}
+  {{if hasPrefix $a.EngineRef "engine:"}}<span class="tag">Dari VOXIN Engine</span>{{end}}
+  <span class="grow"></span>
+  {{if .PublicURL}}<a class="btn small" href="{{.PublicURL}}" target="_blank" rel="noopener">Buka di situs</a><span class="tiny muted">{{num .Views}} tayangan</span>{{end}}
+</div>
+{{if $a.EditorNote}}<div class="flash">{{if .CanPublish}}Catatan editor: {{else}}Catatan dari editor: {{end}}{{$a.EditorNote}}</div>{{end}}
+{{if not .CanEdit}}<div class="flash">Artikel ini sudah {{statusLabel $a.Status}}. Hanya editor yang bisa mengubahnya.</div>{{end}}
+
+<div class="ed">
+  <form id="edform" class="ed-main" method="post" action="/articles/{{$a.ID}}">
+    <fieldset {{if not .CanEdit}}disabled{{end}} class="plain">
+    <div class="panel">
+      <div class="f"><span class="lbl">Jenis konten</span>
+        <div class="seg types">{{range .Types}}<label class="{{if eq . $a.Type}}on{{end}}"><input type="radio" name="type" value="{{.}}" {{if eq . $a.Type}}checked{{end}} onchange="vxType(this)">{{typeLabel .}}</label>{{end}}</div>
+        <span class="hint" id="type-hint"></span>
+      </div>
+      <label class="f">Judul <span class="hint" id="title-count"></span>
+        <textarea class="input title" name="title" rows="2" maxlength="160" required oninput="vxCount(this,'title-count',12,'kata')">{{$a.Title}}</textarea></label>
+      <div class="fgrid">
+        <label class="f">Kata yang di-stabilo <span class="hint">opsional, harus ada di judul</span><input class="input" name="highlight" value="{{$a.Highlight}}"></label>
+        <label class="f">Slug <span class="hint">kosongkan untuk dibuat dari judul</span><input class="input" name="slug" value="{{$a.Slug}}" pattern="[a-z0-9\-]*"></label>
+      </div>
+      <label class="f">Ringkasan / deskripsi <span class="hint" id="sum-count"></span>
+        <textarea class="input" name="summary" rows="2" maxlength="220" oninput="vxCount(this,'sum-count',160,'karakter')">{{$a.Summary}}</textarea></label>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><h2>Isi</h2>
+        <div class="toolbar" role="toolbar" aria-label="Format">
+          <button type="button" onclick="vxWrap('**','**')" title="Tebal"><b>B</b></button>
+          <button type="button" onclick="vxWrap('*','*')" title="Miring"><i>I</i></button>
+          <button type="button" onclick="vxLine('## ')" title="Subjudul">H2</button>
+          <button type="button" onclick="vxLine('> ')" title="Kutipan">“ ”</button>
+          <button type="button" onclick="vxLine('- ')" title="Daftar">• List</button>
+          <button type="button" onclick="vxLink()" title="Tautan">Link</button>
+        </div>
+      </div>
+      <div class="fgrid">
+        <label class="f">Dateline (kota)<input class="input" id="dateline" name="dateline" value="{{$a.Dateline}}" placeholder="JAKARTA" style="text-transform:uppercase"></label>
+      </div>
+      <div class="body-grid">
+        <textarea class="input body" id="body" name="body" rows="22" aria-label="Isi artikel (Markdown)"
+          hx-post="/articles/{{$a.ID}}/preview" hx-trigger="input changed delay:700ms, load" hx-include="#body,#dateline" hx-target="#preview">{{$a.BodyMD}}</textarea>
+        <div class="preview" aria-live="polite"><div class="lbl">Pratinjau</div><div id="preview" class="paper-body"></div></div>
+      </div>
+      <div class="tiny muted">Paragraf dipisah baris kosong. <b>**tebal**</b>, <i>*miring*</i>, ## subjudul, &gt; kutipan, - daftar, [teks](https://link). Dateline otomatis ditambahkan di depan paragraf pertama.</div>
+      <label class="f">INTINYA <span class="hint">opsional, maks 3 poin, satu per baris</span><textarea class="input" name="intinya" rows="3" placeholder="Poin pertama&#10;Poin kedua&#10;Poin ketiga">{{$a.Intinya}}</textarea></label>
+    </div>
+
+    <div class="panel" id="source-panel">
+      <h2>Sumber &amp; medsos</h2>
+      <div class="fgrid">
+        <label class="f">Media sumber <span class="hint">wajib untuk Kurasi</span><input class="input" name="source_name" value="{{$a.SourceName}}" placeholder="mis. Kompas.com, Antara"></label>
+        <label class="f">Link sumber<input class="input" type="url" name="source_url" value="{{$a.SourceURL}}" placeholder="https://"></label>
+      </div>
+      <div class="fgrid">
+        <label class="f">Post Instagram<input class="input" type="url" name="social_instagram" value="{{index $a.Social "instagram"}}" placeholder="https://www.instagram.com/p/…"></label>
+        <label class="f">Post TikTok<input class="input" type="url" name="social_tiktok" value="{{index $a.Social "tiktok"}}"></label>
+        <label class="f">Post Threads<input class="input" type="url" name="social_threads" value="{{index $a.Social "threads"}}"></label>
+      </div>
+      <label class="check"><input type="checkbox" name="ai_assisted" value="1" {{if $a.AIAssisted}}checked{{end}}> Disusun dengan bantuan AI (tampil sebagai keterangan di artikel)</label>
+    </div>
+    </fieldset>
+  </form>
+
+  <aside class="ed-side">
+    <section class="panel">
+      <h2>Terbitkan</h2>
+      {{if .Problems}}
+      <ul class="problems">{{range .Problems}}<li>{{.}}</li>{{end}}</ul>
+      {{else}}<div class="ok-line">Siap terbit.</div>{{end}}
+      {{if eq $a.Status "scheduled"}}<div class="small">Terjadwal: <b>{{waktu $a.ScheduledAt}}</b></div>{{end}}
+      {{if $a.PublishedAt}}<div class="small muted">Terbit pertama {{waktu $a.PublishedAt}}{{if $a.EditorName}} · editor {{$a.EditorName}}{{end}}</div>{{end}}
+      <div class="acts">
+        {{if .CanEdit}}<button class="btn" form="edform" type="submit" name="action" value="save">Simpan</button>{{end}}
+        {{if .CanPublish}}
+          {{if eq $a.Status "published"}}
+            <button class="btn primary" form="edform" type="submit" name="action" value="publish">Simpan &amp; perbarui</button>
+          {{else if eq $a.Status "unpublished"}}
+            <button class="btn primary" form="edform" type="submit" name="action" value="republish">Terbitkan lagi</button>
+          {{else}}
+            <button class="btn primary" form="edform" type="submit" name="action" value="publish">Terbitkan sekarang</button>
+            <div class="sched">
+              <input class="input small" type="datetime-local" name="scheduled_at" form="edform" value="{{localInput $a.ScheduledAt}}" aria-label="Jadwal terbit (WIB)">
+              <button class="btn small" form="edform" type="submit" name="action" value="schedule">Jadwalkan</button>
+            </div>
+          {{end}}
+          {{if or (eq $a.Status "review") (eq $a.Status "scheduled")}}<button class="btn ghost small" form="edform" type="submit" name="action" value="draft">Kembalikan ke draft</button>{{end}}
+        {{else if .CanEdit}}
+          {{if eq $a.Status "draft"}}<button class="btn primary" form="edform" type="submit" name="action" value="review">Kirim ke editor</button>
+          {{else}}<button class="btn ghost small" form="edform" type="submit" name="action" value="draft">Tarik kembali ke draft</button>{{end}}
+        {{end}}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Rubrik</h2>
+      <fieldset {{if not .CanEdit}}disabled{{end}} class="plain stack">
+      <label class="f">Kategori
+        <select class="input" name="category_id" form="edform"><option value="0">Pilih…</option>{{range .Categories}}<option value="{{.ID}}" {{if eq .ID $a.CategoryID}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+      <label class="f">Daerah <span class="hint">wajib untuk Kerja Sama</span>
+        <select class="input" name="region_id" form="edform"><option value="0">—</option>{{range .Regions}}<option value="{{.ID}}" {{if eq .ID $a.RegionID}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+      <label class="f">Penulis
+        {{if .CanPublish}}<select class="input" name="author_id" form="edform"><option value="0">—</option>{{range .Authors}}<option value="{{.ID}}" {{if eq .ID $a.AuthorID}}selected{{end}}>{{.Name}}{{with .Title}} · {{.}}{{end}}</option>{{end}}</select>
+        {{else}}<input class="input" value="{{$a.AuthorName}}" disabled>{{end}}</label>
+      <label class="f">Tag <span class="hint">pisahkan dengan koma</span><input class="input" name="tags" form="edform" value="{{.TagsText}}"></label>
+      {{if .CanPublish}}<label class="f">Catatan editor <span class="hint">untuk penulis, tidak tampil di situs</span><textarea class="input" name="editor_note" form="edform" rows="2">{{$a.EditorNote}}</textarea></label>{{end}}
+      </fieldset>
+    </section>
+
+    <section class="panel">
+      <h2>Foto utama</h2>
+      {{if $a.ImagePath}}
+      <img class="ed-img" src="/media/{{$a.ImagePath}}" alt="">
+      <fieldset {{if not .CanEdit}}disabled{{end}} class="plain stack">
+      <label class="f">Kredit (wajib)<input class="input" name="image_credit" form="edform" value="{{$a.ImageCredit}}" placeholder="Foto: …"></label>
+      <label class="f">Keterangan<input class="input" name="image_caption" form="edform" value="{{$a.ImageCaption}}"></label>
+      </fieldset>
+      {{else}}<p class="small muted">Belum ada foto. Ukuran ideal 1200×675 (16:9).</p>{{end}}
+      {{if .CanEdit}}
+      <form method="post" action="/articles/{{$a.ID}}/image" enctype="multipart/form-data" class="stack">
+        <input class="input" type="file" name="file" accept="image/jpeg,image/png,image/webp" required aria-label="Pilih foto">
+        <input class="input" name="credit" placeholder="Kredit, mis. Foto: Humas Pemkab" required aria-label="Kredit foto">
+        <input class="input" name="caption" placeholder="Keterangan (opsional)" aria-label="Keterangan foto">
+        <button class="btn small" type="submit">{{if $a.ImagePath}}Ganti foto{{else}}Upload foto{{end}}</button>
+      </form>
+      {{end}}
+    </section>
+
+    {{if and .CanPublish (or (eq $a.Status "published"))}}
+    <section class="panel">
+      <h2>Turunkan artikel</h2>
+      <p class="tiny muted">Artikel tidak dihapus. Halamannya tetap ada dan menampilkan alasan penurunan (sesuai pedoman media siber).</p>
+      <textarea class="input" name="unpublish_note" form="edform" rows="2" placeholder="Alasan, mis. atas permintaan hak jawab narasumber"></textarea>
+      <button class="btn danger small" form="edform" type="submit" name="action" value="unpublish" onclick="return confirm('Turunkan artikel ini dari situs?')">Turunkan</button>
+    </section>
+    {{end}}
+
+    {{if .Versions}}
+    <section class="panel">
+      <details><summary><h2 class="inline-h">Riwayat ({{len .Versions}})</h2></summary>
+        <ul class="versions">{{range .Versions}}<li><b>{{.By}}</b> <span class="muted">{{lalu .CreatedAt}}</span><div class="tiny muted">{{.Title}}</div></li>{{end}}</ul>
+      </details>
+    </section>
+    {{end}}
+
+    {{if and .CanEdit (or (eq $a.Status "draft") (eq $a.Status "review"))}}
+    <button class="btn ghost small" form="edform" type="submit" name="action" value="delete" onclick="return confirm('Hapus draft ini?')">Hapus draft</button>
+    {{end}}
+  </aside>
+</div>
+
+<script>
+var hints = {berita: 'Liputan wartawan sendiri. Wajib byline penulis.', kurasi: 'Dirangkum dari media lain. Wajib menyebut media sumber; tampil "Dirangkum dari …".', kerja_sama: 'Konten kerja sama pemda/mitra. Wajib pilih daerah; tampil label KERJA SAMA.', opini: 'Tulisan kontributor. Tampil label OPINI.'};
+function vxType(el){ document.querySelectorAll('.types label').forEach(function(l){ l.classList.toggle('on', l.contains(el)); }); document.getElementById('type-hint').textContent = hints[el.value] || ''; }
+function vxCount(el, id, max, unit){ var n = unit === 'kata' ? el.value.trim().split(/\s+/).filter(Boolean).length : el.value.length; var o = document.getElementById(id); o.textContent = n + ' ' + unit + (n > max ? ' · terlalu panjang (maks ' + max + ')' : ''); o.classList.toggle('over', n > max); }
+var body = document.getElementById('body');
+function vxWrap(a, b){ var s = body.selectionStart, e = body.selectionEnd, t = body.value; body.value = t.slice(0, s) + a + t.slice(s, e) + b + t.slice(e); body.focus(); body.selectionStart = s + a.length; body.selectionEnd = e + a.length; body.dispatchEvent(new Event('input')); }
+function vxLine(p){ var s = body.selectionStart, t = body.value, ls = t.lastIndexOf('\n', s - 1) + 1; body.value = t.slice(0, ls) + p + t.slice(ls); body.focus(); body.selectionStart = body.selectionEnd = s + p.length; body.dispatchEvent(new Event('input')); }
+function vxLink(){ var u = prompt('Link (https://…)'); if (u && /^https?:\/\//.test(u)) vxWrap('[', '](' + u + ')'); }
+(function(){ var c = document.querySelector('.types input:checked'); if (c) vxType(c); var t = document.querySelector('[name=title]'); if (t) vxCount(t,'title-count',12,'kata'); var sm = document.querySelector('[name=summary]'); if (sm) vxCount(sm,'sum-count',160,'karakter'); })();
+var dirty = false; document.getElementById('edform').addEventListener('input', function(){ dirty = true; });
+document.getElementById('edform').addEventListener('submit', function(){ dirty = false; });
+window.addEventListener('beforeunload', function(e){ if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+</script>
+{{end}}{{end}}

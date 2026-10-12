@@ -1,0 +1,12 @@
+{{define "content"}}
+<div class="row-h"><h1 class="h1">Halaman wajib</h1></div>
+<p class="muted small">Halaman yang diperiksa saat verifikasi Dewan Pers dan pengajuan kerja sama. Semuanya tertaut di footer situs. Ganti teks dalam [kurung siku] dengan data asli.</p>
+<div class="panel tight">
+  <table class="tbl">
+    <thead><tr><th>Halaman</th><th>Alamat</th><th>Status</th><th class="hide-sm">Diperbarui</th></tr></thead>
+    <tbody>{{range .Body}}<tr><td><a class="tlink" href="/pages/{{.Slug}}">{{.Title}}</a></td><td class="small"><a href="{{$.BaseURL}}/{{.Slug}}" target="_blank" rel="noopener">/{{.Slug}}</a></td>
+      <td>{{if hasPrefix .BodyMD "["}}<span class="tag st-review">Perlu diisi</span>{{else if contains .BodyMD "["}}<span class="tag st-review">Ada placeholder</span>{{else}}<span class="tag st-published">Lengkap</span>{{end}}</td>
+      <td class="hide-sm small muted">{{lalu .UpdatedAt}}</td></tr>{{end}}</tbody>
+  </table>
+</div>
+{{end}}

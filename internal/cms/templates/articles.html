@@ -1,0 +1,41 @@
+{{define "content"}}{{with .Body}}
+<div class="row-h">
+  <h1 class="h1">Artikel</h1>
+  <span class="grow"></span>
+  <form method="post" action="/articles/new" class="inline">
+    <select class="input small" name="type" aria-label="Jenis">{{range $k := list "berita" "kurasi" "kerja_sama" "opini"}}<option value="{{$k}}">{{typeLabel $k}}</option>{{end}}</select>
+    <button class="btn primary" type="submit">+ Tulis</button>
+  </form>
+</div>
+<form class="filters" method="get" action="/articles">
+  <div class="seg">
+    <a href="/articles{{if .Mine}}?mine=1{{end}}" {{if eq .Status ""}}class="on"{{end}}>Semua</a>
+    {{range $s := list "review" "draft" "scheduled" "published" "unpublished"}}<a href="/articles?status={{$s}}{{if $.Body.Mine}}&mine=1{{end}}" {{if eq $.Body.Status $s}}class="on"{{end}}>{{statusLabel $s}}{{with index $.Body.Counts $s}} <span class="count">{{.}}</span>{{end}}</a>{{end}}
+  </div>
+  <input type="hidden" name="status" value="{{.Status}}">
+  <select class="input small" name="type" aria-label="Jenis" onchange="this.form.submit()"><option value="">Semua jenis</option>{{range $k := list "berita" "kurasi" "kerja_sama" "opini"}}<option value="{{$k}}" {{if eq $.Body.Type $k}}selected{{end}}>{{typeLabel $k}}</option>{{end}}</select>
+  <input class="input small" type="search" name="q" value="{{.Q}}" placeholder="Cari judul/isi" aria-label="Cari">
+  {{if canPublish $.User.Role}}<label class="check"><input type="checkbox" name="mine" value="1" {{if .Mine}}checked{{end}} onchange="this.form.submit()"> Punyaku saja</label>{{end}}
+</form>
+<div class="panel tight">
+  <table class="tbl">
+    <thead><tr><th>Judul</th><th class="hide-sm">Jenis</th><th>Status</th><th class="hide-sm">Penulis</th><th class="hide-sm num">Tayangan</th><th class="hide-sm">Diubah</th></tr></thead>
+    <tbody>
+    {{range .Items}}
+    <tr>
+      <td><a class="tlink" href="/articles/{{.ID}}">{{if .Title}}{{.Title}}{{else}}(tanpa judul){{end}}</a>
+        <div class="tiny muted">{{if .CategoryName}}{{.CategoryName}}{{end}}{{if .RegionName}} · {{.RegionName}}{{end}}{{if hasPrefix .EngineRef "engine:"}} · dari engine{{end}}{{if eq .Status "scheduled"}} · {{waktu .ScheduledAt}}{{end}}</div></td>
+      <td class="hide-sm">{{template "type" .Type}}</td>
+      <td>{{template "status" .Status}}</td>
+      <td class="hide-sm small">{{.AuthorName}}</td>
+      <td class="hide-sm num">{{num (index $.Body.Views .ID)}}</td>
+      <td class="hide-sm small muted">{{lalu .UpdatedAt}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="6" class="muted">Tidak ada artikel.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{if gt .Pages 1}}<div class="pager">{{with .Prev}}<a class="btn small" href="{{.}}">← Sebelumnya</a>{{end}}<span class="muted small">Halaman {{.Page}} / {{.Pages}} · {{.Total}} artikel</span>{{with .Next}}<a class="btn small" href="{{.}}">Berikutnya →</a>{{end}}</div>{{end}}
+{{end}}{{end}}

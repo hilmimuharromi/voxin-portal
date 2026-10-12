@@ -1,0 +1,67 @@
+{{define "list"}}{{template "head" .}}{{template "header" .}}
+{{with .Body}}
+<div class="wrap list-wrap">
+  {{if .Region}}{{with .Region}}
+  <section class="region-head">
+    <div class="kicker">Daerah{{with .Province}} · {{.}}{{end}}</div>
+    <div class="region-title">
+      {{if .Logo}}<img class="region-logo" src="/media/{{.Logo}}" alt="Logo {{.Name}}" width="72" height="72">{{end}}
+      <h1 class="display">{{.Name}}</h1>
+    </div>
+    {{with .Description}}<p>{{.}}</p>{{end}}
+    <div class="stats"><div><b>{{$.Body.Total}}</b><span>artikel</span></div><div><b>{{$.Body.Liputan}}</b><span>liputan</span></div>{{if .Partner}}<div><b>Mitra</b><span>kerja sama</span></div>{{end}}</div>
+  </section>
+  <nav class="tabs" aria-label="Filter konten">
+    <a href="/daerah/{{.Slug}}" {{if eq $.Body.Filter ""}}class="on"{{end}}>Semua</a>
+    <a href="/daerah/{{.Slug}}?jenis=berita" {{if eq $.Body.Filter "berita"}}class="on"{{end}}>Liputan</a>
+    <a href="/daerah/{{.Slug}}?jenis=kerja_sama" {{if eq $.Body.Filter "kerja_sama"}}class="on"{{end}}>Kerja sama</a>
+  </nav>
+  {{end}}
+  {{else if .Author}}{{with .Author}}
+  <section class="author-head">
+    {{if .Photo}}<img class="avatar" src="/media/{{.Photo}}" alt="" width="88" height="88">{{else}}<div class="avatar ph" aria-hidden="true"></div>{{end}}
+    <div>
+      <div class="kicker">Penulis</div>
+      <h1>{{.Name}}</h1>
+      <div class="muted">{{.Title}}{{with .Region}} · Wilayah tugas {{.}}{{end}}</div>
+      {{if .UKWLevel}}<div class="ukw">Wartawan kompeten (UKW) jenjang <b>{{.UKWLevel}}</b>{{with .UKWNumber}} · No. {{.}}{{end}}</div>{{end}}
+      {{with .Bio}}<p>{{.}}</p>{{end}}
+    </div>
+  </section>
+  {{end}}
+  {{else}}
+  <div class="list-head">
+    <h1 class="display">{{.Title}}</h1>
+    {{if eq .Kind "cari"}}
+    <form class="search big" action="/cari" method="get" role="search">
+      <input type="search" name="q" value="{{.Q}}" placeholder="Ketik kata kunci" aria-label="Kata kunci">
+      <button class="btn dark" type="submit">Cari</button>
+    </form>
+    {{end}}
+    {{if .Total}}<div class="muted">{{.Total}} artikel</div>{{end}}
+  </div>
+  {{end}}
+
+  {{if .Items}}
+  <div class="rows">{{range .Items}}{{template "row" .}}{{end}}</div>
+  {{if or .PrevURL .NextURL}}
+  <nav class="pager" aria-label="Halaman">
+    {{if .PrevURL}}<a class="btn" href="{{.PrevURL}}" rel="prev">← Sebelumnya</a>{{end}}
+    <span class="muted">Halaman {{.Page}} dari {{.Pages}}</span>
+    {{if .NextURL}}<a class="btn" href="{{.NextURL}}" rel="next">Berikutnya →</a>{{end}}
+  </nav>
+  {{end}}
+  {{else if or .Q (ne .Kind "cari")}}
+  <p class="empty">Belum ada artikel di sini.</p>
+  {{end}}
+
+  {{if .Region}}
+  <section class="region-cta">
+    <div class="display">Ada kabar dari {{.Region.Name}}?</div>
+    <p>Kirim info, foto, atau rilis ke redaksi. Kami verifikasi dulu sebelum tayang.</p>
+    <a class="btn orange" href="/kontak">Kirim ke redaksi</a>
+  </section>
+  {{end}}
+</div>
+{{end}}
+{{template "footer" .}}{{end}}
