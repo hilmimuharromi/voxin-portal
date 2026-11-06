@@ -9,7 +9,7 @@ Portal berita **voxin.id** dan CMS redaksinya. Satu program Go, dua alamat:
 
 Stack: Go (stdlib `net/http` + `html/template`), HTMX di CMS, PostgreSQL. Satu-satunya dependensi Go adalah `lib/pq`. Tanpa build frontend.
 
-Tersambung ke [voxin-engine](https://github.com/hilmimuharromi/voxin-engine) lewat webhook: tombol "Terbitkan di voxin.id" di engine mengirim artikel ke antrean editor portal.
+Tersambung ke [voxin-engine](https://github.com/hilmimuharromi/voxin-engine) lewat webhook: tombol "Terbitkan di voxin.id" di engine mengirim artikel beserta **foto aslinya** (base64 di `image_data`, kredit di `image_credit`) ke antrean editor portal. Foto diproses pipeline media CMS seperti unggahan biasa; `image_url` tetap diterima sebagai cadangan. Kirim ulang artikel yang sama hanya menambahkan foto bila artikelnya belum punya foto.
 
 ## Menjalankan di Mac
 
