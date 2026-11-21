@@ -169,11 +169,11 @@ func (s *Server) article(r *http.Request) response {
 	vm.ShareURL = canonical
 	vm.WAURL = "https://wa.me/?text=" + url.QueryEscape(a.Title+" "+canonical)
 	vm.Body = a.BodyMD
-	// ponytail: dateline kota dihilangkan dari output; cukup "VOXIN.ID". Kolom a.Dateline masih ada di DB tapi tak dirender.
+	// ponytail: dateline kota dihilangkan; prefix cukup "voxin.id" yang mengarah ke beranda.
 	body := strings.TrimLeft(a.BodyMD, " \n")
-	if !strings.HasPrefix(strings.ToUpper(body), "VOXIN.ID") && !strings.HasPrefix(body, "#") {
-		vm.Dateline = "VOXIN.ID"
-		vm.Body = "**VOXIN.ID** – " + body
+	if !strings.HasPrefix(strings.ToLower(body), "voxin.id") && !strings.HasPrefix(body, "#") {
+		vm.Dateline = "voxin.id"
+		vm.Body = "**[voxin.id](/)** – " + body
 	}
 	if vm.Gone {
 		res := s.render(ctx, "article", a.CategorySlug, Meta{Title: a.Title, NoIndex: true, Canonical: canonical}, vm)

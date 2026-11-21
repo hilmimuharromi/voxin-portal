@@ -386,8 +386,8 @@ func (s *Server) editorPreview(w http.ResponseWriter, r *http.Request) {
 	}
 	body := r.FormValue("body")
 	trimmed := strings.TrimLeft(body, " \n")
-	if !strings.HasPrefix(strings.ToUpper(trimmed), "VOXIN.ID") && !strings.HasPrefix(trimmed, "#") {
-		body = "**VOXIN.ID** – " + trimmed
+	if !strings.HasPrefix(strings.ToLower(trimmed), "voxin.id") && !strings.HasPrefix(trimmed, "#") {
+		body = "**[voxin.id](/)** – " + trimmed
 	}
 	_, _ = a, site
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
