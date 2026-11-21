@@ -93,7 +93,7 @@
 
 {{define "chip"}}{{if eq .Type "kerja_sama"}}<span class="chip ks">Kerja sama</span>{{else if eq .Type "opini"}}<span class="chip line">Opini</span>{{else if .CategoryName}}<span class="chip dark">{{.CategoryName}}</span>{{end}}{{end}}
 
-{{define "meta-line"}}{{if .AuthorName}}Oleh <b>{{.AuthorName}}</b> · {{else}}Redaksi · {{end}}{{lalu .PublishedAt}}{{if eq .Type "kurasi"}}{{with .SourceName}} · Dirangkum dari {{.}}{{end}}{{end}}{{end}}
+{{define "meta-line"}}Oleh <b>Redaksi</b> · {{lalu .PublishedAt}}{{if eq .Type "kurasi"}}{{with .SourceName}} · Dirangkum dari {{.}}{{end}}{{end}}{{end}}
 
 {{define "thumb"}}{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="225">{{end}}{{end}}
 

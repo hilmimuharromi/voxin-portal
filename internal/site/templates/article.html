@@ -19,7 +19,7 @@
     {{if $a.Summary}}<p class="dek">{{$a.Summary}}</p>{{end}}
     <div class="byline">
       <div>
-        {{if $a.AuthorName}}Oleh <a href="/penulis/{{$a.AuthorSlug}}"><b>{{$a.AuthorName}}</b></a>{{else}}Redaksi {{$.Site.Name}}{{end}}{{if $a.EditorName}} · Editor: <b>{{$a.EditorName}}</b>{{end}}
+        Oleh <b>Redaksi</b>
         <div class="muted">{{waktu $a.PublishedAt}} · {{minutes $a.BodyMD}} menit baca</div>
       </div>
     </div>

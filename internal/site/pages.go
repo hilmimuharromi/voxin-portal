@@ -169,12 +169,11 @@ func (s *Server) article(r *http.Request) response {
 	vm.ShareURL = canonical
 	vm.WAURL = "https://wa.me/?text=" + url.QueryEscape(a.Title+" "+canonical)
 	vm.Body = a.BodyMD
-	if a.Dateline != "" {
-		vm.Dateline = strings.ToUpper(strings.TrimSpace(a.Dateline)) + ", " + strings.ToUpper(site.Name)
-		body := strings.TrimLeft(a.BodyMD, " \n")
-		if !strings.HasPrefix(strings.ToUpper(body), strings.ToUpper(strings.TrimSpace(a.Dateline))) && !strings.HasPrefix(body, "#") {
-			vm.Body = "**" + vm.Dateline + "** – " + body
-		}
+	// ponytail: dateline kota dihilangkan dari output; cukup "VOXIN.ID". Kolom a.Dateline masih ada di DB tapi tak dirender.
+	body := strings.TrimLeft(a.BodyMD, " \n")
+	if !strings.HasPrefix(strings.ToUpper(body), "VOXIN.ID") && !strings.HasPrefix(body, "#") {
+		vm.Dateline = "VOXIN.ID"
+		vm.Body = "**VOXIN.ID** – " + body
 	}
 	if vm.Gone {
 		res := s.render(ctx, "article", a.CategorySlug, Meta{Title: a.Title, NoIndex: true, Canonical: canonical}, vm)
@@ -206,11 +205,7 @@ func (s *Server) article(r *http.Request) response {
 	if img != "" {
 		ld["image"] = []string{img}
 	}
-	if a.AuthorName != "" {
-		ld["author"] = []map[string]any{{"@type": "Person", "name": a.AuthorName, "url": s.App.Cfg.BaseURL + "/penulis/" + a.AuthorSlug}}
-	} else {
-		ld["author"] = []map[string]any{{"@type": "Organization", "name": "Redaksi " + site.Name}}
-	}
+	ld["author"] = []map[string]any{{"@type": "Organization", "name": "Redaksi " + site.Name}}
 	if a.CategoryName != "" {
 		ld["articleSection"] = a.CategoryName
 	}

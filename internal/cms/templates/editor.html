@@ -38,15 +38,12 @@
           <button type="button" onclick="vxLink()" title="Tautan">Link</button>
         </div>
       </div>
-      <div class="fgrid">
-        <label class="f">Dateline (kota)<input class="input" id="dateline" name="dateline" value="{{$a.Dateline}}" placeholder="JAKARTA" style="text-transform:uppercase"></label>
-      </div>
       <div class="body-grid">
         <textarea class="input body" id="body" name="body" rows="22" aria-label="Isi artikel (Markdown)"
-          hx-post="/articles/{{$a.ID}}/preview" hx-trigger="input changed delay:700ms, load" hx-include="#body,#dateline" hx-target="#preview">{{$a.BodyMD}}</textarea>
+          hx-post="/articles/{{$a.ID}}/preview" hx-trigger="input changed delay:700ms, load" hx-include="#body" hx-target="#preview">{{$a.BodyMD}}</textarea>
         <div class="preview" aria-live="polite"><div class="lbl">Pratinjau</div><div id="preview" class="paper-body"></div></div>
       </div>
-      <div class="tiny muted">Paragraf dipisah baris kosong. <b>**tebal**</b>, <i>*miring*</i>, ## subjudul, &gt; kutipan, - daftar, [teks](https://link). Dateline otomatis ditambahkan di depan paragraf pertama.</div>
+      <div class="tiny muted">Paragraf dipisah baris kosong. <b>**tebal**</b>, <i>*miring*</i>, ## subjudul, &gt; kutipan, - daftar, [teks](https://link). Label <b>VOXIN.ID</b> otomatis ditambahkan di depan paragraf pertama.</div>
       <label class="f">INTINYA <span class="hint">opsional, maks 3 poin, satu per baris</span><textarea class="input" name="intinya" rows="3" placeholder="Poin pertama&#10;Poin kedua&#10;Poin ketiga">{{$a.Intinya}}</textarea></label>
     </div>
 

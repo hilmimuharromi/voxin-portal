@@ -385,10 +385,11 @@ func (s *Server) editorPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body := r.FormValue("body")
-	if dl := strings.ToUpper(strings.TrimSpace(r.FormValue("dateline"))); dl != "" && !strings.HasPrefix(strings.TrimSpace(body), "#") {
-		body = "**" + dl + ", " + strings.ToUpper(site.Name) + "** – " + strings.TrimLeft(body, " \n")
+	trimmed := strings.TrimLeft(body, " \n")
+	if !strings.HasPrefix(strings.ToUpper(trimmed), "VOXIN.ID") && !strings.HasPrefix(trimmed, "#") {
+		body = "**VOXIN.ID** – " + trimmed
 	}
-	_ = a
+	_, _ = a, site
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintf(w, `%s<div class="tiny muted">%d kata · %d menit baca</div>`, text.Markdown(body), len(strings.Fields(r.FormValue("body"))), text.ReadMinutes(r.FormValue("body")))
 }
