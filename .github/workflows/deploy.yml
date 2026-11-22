@@ -1,0 +1,28 @@
+name: Deploy to miro-server
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-portal
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, miro, portal]
+    steps:
+      - name: Pull latest
+        run: |
+          cd /opt/voxin-portal
+          git fetch --quiet origin main
+          git reset --hard origin/main
+      - name: Build & restart
+        run: |
+          cd /opt/voxin-portal
+          docker compose -f docker-compose.prod.yml up -d --build
+      - name: Health check
+        run: |
+          sleep 3
+          curl -fsS -o /dev/null -w "portal %{http_code}\n" http://127.0.0.1:8090/
+          curl -fsS -o /dev/null -w "cms %{http_code}\n" http://127.0.0.1:8091/ || true
