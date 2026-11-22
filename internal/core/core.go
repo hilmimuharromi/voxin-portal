@@ -30,7 +30,11 @@ func New(st *store.Store, cfg *config.Config, log *slog.Logger) *App {
 	if err != nil {
 		loc = time.FixedZone("WIB", 7*3600)
 	}
-	return &App{Store: st, Cfg: cfg, Media: media.Store{Dir: cfg.DataDir + "/media"}, Loc: loc, Cache: NewCache(60 * time.Second), Log: log}
+	m := media.Store{Dir: cfg.DataDir + "/media", PublicBase: cfg.MediaBaseURL}
+	if cfg.R2AccountID != "" && cfg.R2Bucket != "" && cfg.R2AccessKey != "" {
+		m.R2 = media.NewR2(cfg.R2AccountID, cfg.R2AccessKey, cfg.R2SecretKey, cfg.R2Bucket)
+	}
+	return &App{Store: st, Cfg: cfg, Media: m, Loc: loc, Cache: NewCache(60 * time.Second), Log: log}
 }
 
 func (a *App) Site(ctx context.Context) (store.Site, error) {

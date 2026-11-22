@@ -84,7 +84,7 @@ func (s *Server) rss(r *http.Request) response {
 			it.PubDate = a.PublishedAt.Format(time.RFC1123Z)
 		}
 		if a.ImagePath != "" {
-			it.Encl = &rssEnclosure{URL: base + imgURL(a.ImagePath, a.ImageVariants, 800), Type: "image/jpeg"}
+			it.Encl = &rssEnclosure{URL: base + s.imgURL(a.ImagePath, a.ImageVariants, 800), Type: "image/jpeg"}
 		}
 		f.Channel.Items = append(f.Channel.Items, it)
 	}

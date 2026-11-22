@@ -62,8 +62,8 @@ func (s *Server) funcs() template.FuncMap {
 			}
 			return text.Lalu(t.In(s.App.Loc), time.Now().In(s.App.Loc))
 		},
-		"img":      imgURL,
-		"srcset":   srcset,
+		"img":      s.imgURL,
+		"srcset":   s.srcset,
 		"hl":       func(title, hl string) template.HTML { return highlight(title, hl) },
 		"excerpt":  func(s string, n int) string { return text.Excerpt(text.Plain(s), n) },
 		"lines":    text.Lines,
@@ -94,7 +94,7 @@ func parseVariants(raw string) variants {
 }
 
 // imgURL picks the variant closest to the wanted width.
-func imgURL(path, rawVariants string, width int) string {
+func (s *Server) imgURL(path, rawVariants string, width int) string {
 	if path == "" {
 		return ""
 	}
@@ -109,15 +109,15 @@ func imgURL(path, rawVariants string, width int) string {
 	if best == "" {
 		best = path
 	}
-	return "/media/" + best
+	return s.App.Media.PublicURL(best)
 }
 
-func srcset(path, rawVariants string) string {
+func (s *Server) srcset(path, rawVariants string) string {
 	v := parseVariants(rawVariants)
 	var parts []string
 	for _, w := range []int{400, 800, 1200} {
 		if p := v[strconv.Itoa(w)]; p != "" {
-			parts = append(parts, fmt.Sprintf("/media/%s %dw", p, w))
+			parts = append(parts, fmt.Sprintf("%s %dw", s.App.Media.PublicURL(p), w))
 		}
 	}
 	return strings.Join(parts, ", ")

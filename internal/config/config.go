@@ -22,6 +22,14 @@ type Config struct {
 	Site          string // site key served on the public listener
 	TZ            string
 	SecureCookie  bool
+
+	// R2 / public media (optional). Kalau R2_* kosong, media disajikan dari
+	// disk lewat /media/ seperti semula.
+	R2AccountID  string
+	R2AccessKey  string
+	R2SecretKey  string
+	R2Bucket     string
+	MediaBaseURL string // e.g. https://asset.voxin.id
 }
 
 func Load() (*Config, error) {
@@ -37,6 +45,11 @@ func Load() (*Config, error) {
 		CMSURL:        strings.TrimRight(env("PORTAL_CMS_URL", "http://localhost:8091"), "/"),
 		Site:          env("PORTAL_SITE", "voxin"),
 		TZ:            env("TZ", "Asia/Jakarta"),
+		R2AccountID:   strings.TrimSpace(os.Getenv("R2_ACCOUNT_ID")),
+		R2AccessKey:   strings.TrimSpace(os.Getenv("R2_ACCESS_KEY_ID")),
+		R2SecretKey:   os.Getenv("R2_SECRET_ACCESS_KEY"),
+		R2Bucket:      strings.TrimSpace(os.Getenv("R2_BUCKET")),
+		MediaBaseURL:  strings.TrimRight(strings.TrimSpace(os.Getenv("MEDIA_BASE_URL")), "/"),
 	}
 	c.SecureCookie = strings.HasPrefix(c.CMSURL, "https://")
 	if len(c.SecretKey) < 16 {

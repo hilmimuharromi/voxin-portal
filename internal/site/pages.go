@@ -186,7 +186,7 @@ func (s *Server) article(r *http.Request) response {
 	vm.Related = rel
 	img := ""
 	if a.ImagePath != "" {
-		img = s.App.Cfg.BaseURL + imgURL(a.ImagePath, a.ImageVariants, 1200)
+		img = s.App.Cfg.BaseURL + s.imgURL(a.ImagePath, a.ImageVariants, 1200)
 	}
 	desc := a.Summary
 	if desc == "" {

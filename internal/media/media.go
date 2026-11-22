@@ -30,7 +30,21 @@ type Saved struct {
 	Variants map[string]string
 }
 
-type Store struct{ Dir string } // data/media
+type Store struct {
+	Dir        string    // data/media (also used as filesystem fallback)
+	R2         *R2Client // optional: upload to Cloudflare R2
+	PublicBase string    // e.g. "https://asset.voxin.id"; empty = serve from /media locally
+}
+
+// PublicURL returns the external URL for a stored path. When PublicBase is
+// empty it keeps the legacy "/media/<path>" so nginx can serve it from disk.
+func (s Store) PublicURL(p string) string {
+	p = strings.TrimLeft(p, "/")
+	if s.PublicBase != "" {
+		return strings.TrimRight(s.PublicBase, "/") + "/" + p
+	}
+	return "/media/" + p
+}
 
 // Save writes the original and its variants under media/YYYY/MM/.
 func (s Store) Save(data []byte) (Saved, error) {
@@ -48,6 +62,7 @@ func (s Store) Save(data []byte) (Saved, error) {
 	if err := os.WriteFile(filepath.Join(s.Dir, out.Path), data, 0o644); err != nil {
 		return Saved{}, err
 	}
+	s.R2.TryPut(context.Background(), out.Path, ctype, data)
 	if ext == ".webp" {
 		// stdlib cannot decode WebP: keep the original only
 		out.Width, out.Height = webpSize(data)
@@ -72,6 +87,7 @@ func (s Store) Save(data []byte) (Saved, error) {
 		p := filepath.ToSlash(fmt.Sprintf("%s-%d.jpg", base, w))
 		if err := os.WriteFile(filepath.Join(s.Dir, p), buf.Bytes(), 0o644); err == nil {
 			out.Variants[strconv.Itoa(w)] = p
+			s.R2.TryPut(context.Background(), p, "image/jpeg", buf.Bytes())
 		}
 	}
 	return out, nil
