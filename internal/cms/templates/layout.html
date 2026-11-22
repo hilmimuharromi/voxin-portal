@@ -6,41 +6,71 @@
 <meta name="robots" content="noindex">
 <title>{{.Title}} · CMS {{.Site.Name}}</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/cms-static/cms.css?v=1">
+<link rel="stylesheet" href="/cms-static/cms.css?v=2">
 <script src="/cms-static/htmx.min.js" defer></script>
 </head>
-<body>
-<header class="top">
-  <div class="top-in">
-    <a class="brand" href="/"><span class="wm">VO<b>X</b>IN</span><span class="brand-sub">CMS redaksi</span></a>
-    <nav class="nav" aria-label="Menu">
-      <a href="/" {{if eq .Nav "home"}}class="on"{{end}}>Ruang redaksi</a>
-      <a href="/articles" {{if eq .Nav "articles"}}class="on"{{end}}>Artikel{{if and .Review (canPublish .User.Role)}} <span class="count">{{.Review}}</span>{{end}}</a>
-      {{if canPublish .User.Role}}<a href="/analytics" {{if eq .Nav "analytics"}}class="on"{{end}}>Analitik</a>{{end}}
-      {{if canManage .User.Role}}
-      <a href="/regions" {{if eq .Nav "regions"}}class="on"{{end}}>Daerah</a>
-      <a href="/pages" {{if eq .Nav "pages"}}class="on"{{end}}>Halaman wajib</a>
-      <a href="/team" {{if eq .Nav "team"}}class="on"{{end}}>Tim</a>
-      <a href="/settings" {{if eq .Nav "settings"}}class="on"{{end}}>Pengaturan</a>
-      {{end}}
-    </nav>
-    <span class="grow"></span>
-    <form method="post" action="/articles/new"><button class="btn primary small" type="submit">+ Tulis artikel</button></form>
-    <a class="me" href="/team/{{.User.ID}}" title="Profil & password">{{.User.Name}} <span class="muted">· {{roleLabel .User.Role}}</span></a>
-    <a class="btn small ghost" href="{{.BaseURL}}" target="_blank" rel="noopener">Lihat situs</a>
-  </div>
+<body class="shell">
+<header class="mbar">
+  <button class="burger" type="button" aria-label="Buka menu" aria-controls="side" aria-expanded="false" data-nav-open><span></span><span></span><span></span></button>
+  <a class="brand" href="/"><span class="wm">VO<b>X</b>IN</span></a>
+  <span class="grow"></span>
+  <form method="post" action="/articles/new"><button class="btn primary small" type="submit">+ Tulis</button></form>
 </header>
+<div class="scrim" data-nav-close hidden></div>
+<aside class="side" id="side" aria-label="Menu CMS">
+  <div class="side-head">
+    <a class="brand" href="/"><span class="wm">VO<b>X</b>IN</span><span class="brand-sub">CMS redaksi</span></a>
+    <button class="side-x" type="button" aria-label="Tutup menu" data-nav-close>×</button>
+  </div>
+  <form method="post" action="/articles/new"><button class="btn primary side-new" type="submit">+ Tulis artikel</button></form>
+  <nav class="nav" aria-label="Menu">
+    <div class="nav-h">Redaksi</div>
+    <a href="/" {{if eq .Nav "home"}}class="on" aria-current="page"{{end}}>Ruang redaksi</a>
+    <a href="/articles" {{if eq .Nav "articles"}}class="on" aria-current="page"{{end}}>Artikel{{if and .Review (canPublish .User.Role)}} <span class="count">{{.Review}}</span>{{end}}</a>
+    {{if canPublish .User.Role}}<a href="/analytics" {{if eq .Nav "analytics"}}class="on" aria-current="page"{{end}}>Analitik</a>{{end}}
+    {{if canManage .User.Role}}
+    <div class="nav-h">Situs</div>
+    <a href="/categories" {{if eq .Nav "categories"}}class="on" aria-current="page"{{end}}>Rubrik</a>
+    <a href="/regions" {{if eq .Nav "regions"}}class="on" aria-current="page"{{end}}>Daerah</a>
+    <a href="/pages" {{if eq .Nav "pages"}}class="on" aria-current="page"{{end}}>Halaman wajib</a>
+    <a href="/team" {{if eq .Nav "team"}}class="on" aria-current="page"{{end}}>Tim</a>
+    <a href="/settings" {{if eq .Nav "settings"}}class="on" aria-current="page"{{end}}>Pengaturan</a>
+    <a href="/settings#analytics">Analitik &amp; SEO</a>
+    <a href="/settings#footer">Footer situs</a>
+    {{end}}
+  </nav>
+  <div class="side-foot">
+    <a class="me" href="/team/{{.User.ID}}" title="Profil & password">{{.User.Name}}<span class="tiny muted">{{roleLabel .User.Role}}</span></a>
+    <div class="row-h">
+      <a class="btn small ghost" href="{{.BaseURL}}" target="_blank" rel="noopener">Lihat situs ↗</a>
+      <form method="post" action="/logout"><button class="btn ghost small" type="submit">Keluar</button></form>
+    </div>
+  </div>
+</aside>
 <main class="main">
   {{if .Flash}}<div class="flash {{if .FlashErr}}err{{end}}" role="status">{{.Flash}}</div>{{end}}
   {{template "content" .}}
 </main>
-<footer class="foot"><form method="post" action="/logout"><button class="btn ghost small" type="submit">Keluar</button></form></footer>
 <script>
 document.addEventListener('click', function (e) {
   var b = e.target.closest('[data-copy]'); if (!b) return;
   var t = document.getElementById(b.getAttribute('data-copy')); var v = t ? (t.value || t.textContent) : b.getAttribute('data-copy');
   navigator.clipboard && navigator.clipboard.writeText(v).then(function(){ var o=b.textContent; b.textContent='Tersalin'; setTimeout(function(){b.textContent=o},1500); });
 });
+(function () {
+  var side = document.getElementById('side'), scrim = document.querySelector('.scrim'), btn = document.querySelector('[data-nav-open]');
+  function set(open) {
+    document.body.classList.toggle('nav-open', open);
+    if (scrim) scrim.hidden = !open;
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && side) { var f = side.querySelector('a,button'); f && f.focus(); }
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-nav-open]')) set(true);
+    else if (e.target.closest('[data-nav-close]') || (document.body.classList.contains('nav-open') && e.target.closest('.side a'))) set(false);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.body.classList.contains('nav-open')) { set(false); btn && btn.focus(); } });
+})();
 </script>
 </body>
 </html>

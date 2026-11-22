@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -305,13 +306,22 @@ func (s *Server) userPassword(w http.ResponseWriter, r *http.Request) {
 // ---------- settings ----------
 
 type SettingsVM struct {
-	S         store.Site
-	EngineURL string
+	S          store.Site
+	EngineURL  string
+	SiteURL    string
+	FooterCols []store.FooterColumn // current columns padded to maxFooterCols for the form
 }
+
+const maxFooterCols = 4
 
 func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 	site, _ := s.App.Site(r.Context())
-	s.render(w, r, "settings", "Pengaturan", "settings", SettingsVM{S: site, EngineURL: s.App.Cfg.CMSURL + "/api/engine/articles"})
+	cols := append([]store.FooterColumn(nil), site.Settings.FooterCols(site.Name)...)
+	for len(cols) < maxFooterCols {
+		cols = append(cols, store.FooterColumn{})
+	}
+	s.render(w, r, "settings", "Pengaturan", "settings", SettingsVM{S: site, EngineURL: s.App.Cfg.CMSURL + "/api/engine/articles",
+		SiteURL: s.App.Cfg.BaseURL, FooterCols: cols})
 }
 
 func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
@@ -320,6 +330,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 	set := site.Settings
 	set.Tagline, set.About, set.Handle = f("tagline"), f("about"), f("handle")
 	set.Instagram, set.TikTok, set.Threads = f("instagram"), f("tiktok"), f("threads")
+	set.YouTube, set.Facebook, set.X = f("youtube"), f("facebook"), f("x")
 	set.Company, set.Address, set.PressStatus, set.Email = f("company"), f("address"), f("press_status"), f("email")
 	if err := s.App.Store.SaveSiteSettings(r.Context(), site.ID, firstNonEmpty(f("name"), site.Name), set); err != nil {
 		back(w, r, "/settings", err.Error(), true)
@@ -327,6 +338,141 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 	}
 	s.App.Cache.Clear()
 	back(w, r, "/settings", "Pengaturan disimpan.", false)
+}
+
+func (s *Server) settingsAnalytics(w http.ResponseWriter, r *http.Request) {
+	site, _ := s.App.Site(r.Context())
+	set := site.Settings
+	ga4, err := normGA4(r.FormValue("ga4"))
+	if err != nil {
+		back(w, r, "/settings#analytics", err.Error(), true)
+		return
+	}
+	gsc, err := verifyToken(r.FormValue("search_console"), "Google Search Console")
+	if err != nil {
+		back(w, r, "/settings#analytics", err.Error(), true)
+		return
+	}
+	bing, err := verifyToken(r.FormValue("bing_verify"), "Bing")
+	if err != nil {
+		back(w, r, "/settings#analytics", err.Error(), true)
+		return
+	}
+	set.GA4, set.SearchConsole, set.BingVerify = ga4, gsc, bing
+	if err := s.App.Store.SaveSiteSettings(r.Context(), site.ID, site.Name, set); err != nil {
+		back(w, r, "/settings#analytics", err.Error(), true)
+		return
+	}
+	s.App.Cache.Clear()
+	back(w, r, "/settings#analytics", "Analitik & SEO disimpan. Kode sudah terpasang di semua halaman situs.", false)
+}
+
+var (
+	ga4RE     = regexp.MustCompile(`^G-[A-Z0-9]{4,16}$`)
+	tokenRE   = regexp.MustCompile(`^[A-Za-z0-9_\-]{8,128}$`)
+	contentRE = regexp.MustCompile(`content\s*=\s*["']([^"']+)["']`)
+)
+
+// normGA4 accepts a GA4 Measurement ID (or a pasted gtag snippet containing one).
+func normGA4(v string) (string, error) {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "", nil
+	}
+	if m := regexp.MustCompile(`G-[A-Za-z0-9]{4,16}`).FindString(v); m != "" {
+		v = m
+	}
+	v = strings.ToUpper(v)
+	if !ga4RE.MatchString(v) {
+		return "", fmt.Errorf("Measurement ID GA4 harus berbentuk G-XXXXXXXXXX (lihat GA4 › Admin › Aliran data). ID UA- lama sudah tidak dipakai Google")
+	}
+	return v, nil
+}
+
+// verifyToken accepts a bare verification token or a whole <meta ... content="..."> tag.
+func verifyToken(v, what string) (string, error) {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return "", nil
+	}
+	if m := contentRE.FindStringSubmatch(v); m != nil {
+		v = m[1]
+	}
+	if !tokenRE.MatchString(v) {
+		return "", fmt.Errorf("token verifikasi %s tidak dikenali; salin nilai content=\"...\" dari tag meta-nya", what)
+	}
+	return v, nil
+}
+
+func (s *Server) settingsFooter(w http.ResponseWriter, r *http.Request) {
+	site, _ := s.App.Site(r.Context())
+	set := site.Settings
+	if r.FormValue("reset") == "1" {
+		set.Footer = store.Footer{}
+	} else {
+		ft, err := parseFooter(r.Form["col_title"], r.Form["col_links"])
+		if err != nil {
+			back(w, r, "/settings#footer", err.Error(), true)
+			return
+		}
+		ft.Copyright = strings.TrimSpace(r.FormValue("copyright"))
+		ft.Note = strings.TrimSpace(r.FormValue("note"))
+		ft.HideCompany = r.FormValue("hide_company") == "1"
+		ft.HideSocial = r.FormValue("hide_social") == "1"
+		set.Footer = ft
+	}
+	if err := s.App.Store.SaveSiteSettings(r.Context(), site.ID, site.Name, set); err != nil {
+		back(w, r, "/settings#footer", err.Error(), true)
+		return
+	}
+	s.App.Cache.Clear()
+	back(w, r, "/settings#footer", "Footer disimpan. Perubahan langsung tampil di situs.", false)
+}
+
+// parseFooter turns the form's column titles and "Label | URL" lines into footer columns.
+func parseFooter(titles, links []string) (store.Footer, error) {
+	var ft store.Footer
+	for i := 0; i < len(titles) && i < maxFooterCols; i++ {
+		col := store.FooterColumn{Title: strings.TrimSpace(titles[i])}
+		if i < len(links) {
+			for n, line := range strings.Split(links[i], "\n") {
+				line = strings.TrimSpace(line)
+				if line == "" {
+					continue
+				}
+				label, url, ok := strings.Cut(line, "|")
+				label, url = strings.TrimSpace(label), strings.TrimSpace(url)
+				if !ok || label == "" || url == "" {
+					return ft, fmt.Errorf("kolom %d baris %d: tulis dengan format Label | /alamat", i+1, n+1)
+				}
+				if !footerURLOK(url) {
+					return ft, fmt.Errorf("kolom %d: alamat %q harus diawali /, https://, http://, atau mailto:", i+1, url)
+				}
+				col.Links = append(col.Links, store.FooterLink{Label: label, URL: url})
+			}
+		}
+		if col.Title == "" && len(col.Links) == 0 {
+			continue
+		}
+		ft.Columns = append(ft.Columns, col)
+	}
+	if len(ft.Columns) == 0 {
+		return ft, fmt.Errorf("footer butuh minimal satu kolom; pakai \"Kembalikan ke bawaan\" bila ingin kolom standar")
+	}
+	return ft, nil
+}
+
+func footerURLOK(u string) bool {
+	l := strings.ToLower(u)
+	if strings.HasPrefix(l, "//") {
+		return false
+	}
+	for _, p := range []string{"/", "https://", "http://", "mailto:"} {
+		if strings.HasPrefix(l, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) settingsToken(w http.ResponseWriter, r *http.Request) {

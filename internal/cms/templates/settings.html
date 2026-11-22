@@ -20,8 +20,50 @@
     <label class="f">Instagram<input class="input" type="url" name="instagram" value="{{$s.Instagram}}"></label>
     <label class="f">TikTok<input class="input" type="url" name="tiktok" value="{{$s.TikTok}}"></label>
     <label class="f">Threads<input class="input" type="url" name="threads" value="{{$s.Threads}}"></label>
+    <label class="f">YouTube<input class="input" type="url" name="youtube" value="{{$s.YouTube}}"></label>
+    <label class="f">Facebook<input class="input" type="url" name="facebook" value="{{$s.Facebook}}"></label>
+    <label class="f">X (Twitter)<input class="input" type="url" name="x" value="{{$s.X}}"></label>
   </div>
+  <p class="hint">Akun yang diisi tampil sebagai tautan di footer (bisa disembunyikan di bagian Footer).</p>
   <div class="row-h"><span class="grow"></span><button class="btn primary" type="submit">Simpan</button></div>
+</form>
+
+<form class="panel stack" method="post" action="/settings/analytics" id="analytics">
+  <h2>Analitik &amp; SEO <span class="hint">kode pelacak dan verifikasi mesin pencari, dipasang di semua halaman voxin.id</span></h2>
+  <p class="small muted">Angka di menu <a href="/analytics">Analitik</a> tetap dihitung sendiri oleh portal tanpa cookie. Isi bagian ini kalau juga ingin data di Google Analytics atau ingin situs terverifikasi di Google Search Console / Bing.</p>
+  <div class="fgrid">
+    <label class="f">Google Analytics 4 <span class="hint">Measurement ID, mis. G-AB12CD34EF</span><input class="input mono" name="ga4" value="{{$s.GA4}}" placeholder="G-XXXXXXXXXX" autocomplete="off"></label>
+    <label class="f">Google Search Console <span class="hint">token verifikasi, atau tempel seluruh tag &lt;meta&gt;</span><input class="input mono" name="search_console" value="{{$s.SearchConsole}}" placeholder="kode dari google-site-verification" autocomplete="off"></label>
+    <label class="f">Bing Webmaster <span class="hint">token msvalidate.01, atau seluruh tag &lt;meta&gt;</span><input class="input mono" name="bing_verify" value="{{$s.BingVerify}}" autocomplete="off"></label>
+  </div>
+  <p class="hint">Kosongkan untuk mencopot. Sitemap untuk didaftarkan: <code>{{.SiteURL}}/sitemap.xml</code> dan <code>{{.SiteURL}}/sitemap-news.xml</code>. GA4 memakai cookie, jadi sebutkan di halaman Kebijakan privasi.</p>
+  <div class="row-h"><span class="grow"></span><button class="btn primary" type="submit">Simpan analitik</button></div>
+</form>
+
+<form class="panel stack" method="post" action="/settings/footer" id="footer">
+  <h2>Footer situs <span class="hint">kolom tautan di bawah setiap halaman voxin.id</span></h2>
+  {{if not $s.Footer.Columns}}<p class="small muted">Saat ini memakai kolom bawaan (Redaksi dan Bisnis). Ubah di bawah lalu simpan untuk memakai versi Anda.</p>{{end}}
+  <div class="fcols">
+    {{range .FooterCols}}
+    <div class="fcol">
+      <label class="f">Judul kolom<input class="input" name="col_title" value="{{.Title}}" placeholder="mis. Redaksi"></label>
+      <label class="f">Tautan <span class="hint">satu per baris: Label | /alamat</span><textarea class="input mono" name="col_links" rows="8" placeholder="Kontak | /kontak">{{range .Links}}{{.Label}} | {{.URL}}
+{{end}}</textarea></label>
+    </div>
+    {{end}}
+  </div>
+  <p class="hint">Kosongkan judul dan tautan untuk menghapus kolom. Alamat boleh diawali <code>/</code>, <code>https://</code>, atau <code>mailto:</code>. Halaman wajib Dewan Pers (pedoman media siber, redaksi, koreksi) sebaiknya tetap ada.</p>
+  <div class="fgrid">
+    <label class="f">Baris hak cipta <span class="hint">{tahun} dan {nama} diganti otomatis</span><input class="input" name="copyright" value="{{$s.Footer.Copyright}}" placeholder="© {tahun} {nama}."></label>
+    <label class="f">Catatan kecil <span class="hint">isi "-" untuk menyembunyikan</span><input class="input" name="note" value="{{$s.Footer.Note}}" placeholder="Konten yang disusun dengan bantuan AI selalu diperiksa editor."></label>
+  </div>
+  <label class="check"><input type="checkbox" name="hide_company" value="1" {{if $s.Footer.HideCompany}}checked{{end}}> Sembunyikan nama PT, alamat, dan status Dewan Pers</label>
+  <label class="check"><input type="checkbox" name="hide_social" value="1" {{if $s.Footer.HideSocial}}checked{{end}}> Sembunyikan tautan media sosial</label>
+  <div class="row-h">
+    <button class="btn small" type="submit" name="reset" value="1" formnovalidate onclick="return confirm('Kembalikan footer ke bawaan?')">Kembalikan ke bawaan</button>
+    <span class="grow"></span><a class="btn small" href="{{.SiteURL}}" target="_blank" rel="noopener">Lihat situs</a>
+    <button class="btn primary" type="submit">Simpan footer</button>
+  </div>
 </form>
 
 <section class="panel stack" id="engine">

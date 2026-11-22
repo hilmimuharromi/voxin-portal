@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -93,18 +94,94 @@ func (s *Store) migrate(ctx context.Context) error {
 // ---------- sites ----------
 
 type SiteSettings struct {
-	Tagline     string `json:"tagline"`
-	About       string `json:"about"`
-	Handle      string `json:"handle"`
-	Instagram   string `json:"instagram"`
-	TikTok      string `json:"tiktok"`
-	Threads     string `json:"threads"`
-	Company     string `json:"company"`
-	Address     string `json:"address"`
-	PressStatus string `json:"press_status"`
-	Email       string `json:"email"`
-	EngineToken string `json:"engine_token"`
-	GA4         string `json:"ga4"`
+	Tagline       string `json:"tagline"`
+	About         string `json:"about"`
+	Handle        string `json:"handle"`
+	Instagram     string `json:"instagram"`
+	TikTok        string `json:"tiktok"`
+	Threads       string `json:"threads"`
+	Company       string `json:"company"`
+	Address       string `json:"address"`
+	PressStatus   string `json:"press_status"`
+	Email         string `json:"email"`
+	EngineToken   string `json:"engine_token"`
+	GA4           string `json:"ga4"`
+	SearchConsole string `json:"search_console,omitempty"` // google-site-verification token
+	BingVerify    string `json:"bing_verify,omitempty"`    // msvalidate.01 token
+	YouTube       string `json:"youtube,omitempty"`
+	Facebook      string `json:"facebook,omitempty"`
+	X             string `json:"x,omitempty"`
+	Footer        Footer `json:"footer,omitempty"`
+}
+
+// Footer is what the public footer shows; empty Columns = the default columns below.
+type Footer struct {
+	Columns     []FooterColumn `json:"columns,omitempty"`
+	Copyright   string         `json:"copyright,omitempty"` // {tahun} dan {nama} diganti otomatis
+	Note        string         `json:"note,omitempty"`      // baris kecil tambahan, mis. "Konten berbantuan AI diperiksa editor."
+	HideSocial  bool           `json:"hide_social,omitempty"`
+	HideCompany bool           `json:"hide_company,omitempty"`
+}
+
+type FooterColumn struct {
+	Title string       `json:"title"`
+	Links []FooterLink `json:"links"`
+}
+
+type FooterLink struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
+// DefaultFooterColumns are the links every media siber needs (halaman wajib + bisnis).
+func DefaultFooterColumns(siteName string) []FooterColumn {
+	return []FooterColumn{
+		{Title: "Redaksi", Links: []FooterLink{{"Susunan redaksi", "/redaksi"}, {"Pedoman pemberitaan media siber", "/pedoman-media-siber"},
+			{"Kode etik", "/kode-etik"}, {"Koreksi & hak jawab", "/koreksi-hak-jawab"}, {"Tentang " + siteName, "/tentang"}}},
+		{Title: "Bisnis", Links: []FooterLink{{"Kerja sama & iklan", "/kerja-sama"}, {"Kontak", "/kontak"}, {"Kebijakan privasi", "/privasi"}, {"RSS", "/rss.xml"}}},
+	}
+}
+
+const DefaultCopyright = "© {tahun} {nama}."
+const DefaultFooterNote = "Konten yang disusun dengan bantuan AI selalu diperiksa editor."
+
+// FooterCols returns the configured columns, or the defaults.
+func (s SiteSettings) FooterCols(siteName string) []FooterColumn {
+	if len(s.Footer.Columns) > 0 {
+		return s.Footer.Columns
+	}
+	return DefaultFooterColumns(siteName)
+}
+
+// CopyrightLine fills {tahun} and {nama}.
+func (s SiteSettings) CopyrightLine(year int, siteName string) string {
+	c := s.Footer.Copyright
+	if strings.TrimSpace(c) == "" {
+		c = DefaultCopyright
+	}
+	return strings.NewReplacer("{tahun}", strconv.Itoa(year), "{nama}", siteName).Replace(c)
+}
+
+// FooterNote is the small line under the copyright ("-" hides it).
+func (s SiteSettings) FooterNote() string {
+	switch strings.TrimSpace(s.Footer.Note) {
+	case "":
+		return DefaultFooterNote
+	case "-":
+		return ""
+	}
+	return s.Footer.Note
+}
+
+// SocialLinks lists the filled social accounts in a fixed order.
+func (s SiteSettings) SocialLinks() []FooterLink {
+	var out []FooterLink
+	for _, l := range []FooterLink{{"Instagram", s.Instagram}, {"TikTok", s.TikTok}, {"Threads", s.Threads}, {"YouTube", s.YouTube}, {"Facebook", s.Facebook}, {"X", s.X}} {
+		if strings.TrimSpace(l.URL) != "" {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 type Site struct {
@@ -224,15 +301,24 @@ func (s *Store) ListUsers(ctx context.Context) ([]User, error) {
 // ---------- categories & regions ----------
 
 type Category struct {
-	ID       int64
-	Slug     string
-	Name     string
-	Position int
-	InNav    bool
+	ID          int64
+	Slug        string
+	Name        string
+	Description string
+	Position    int
+	InNav       bool // tampil di menu atas situs
+	OnHome      bool // boleh jadi blok rubrik di beranda
+	Articles    int  // filled by CategoriesWithCounts
+}
+
+const categoryCols = `id, slug, name, description, position, in_nav, on_home`
+
+func scanCategory(sc interface{ Scan(...any) error }, c *Category, extra ...any) error {
+	return sc.Scan(append([]any{&c.ID, &c.Slug, &c.Name, &c.Description, &c.Position, &c.InNav, &c.OnHome}, extra...)...)
 }
 
 func (s *Store) Categories(ctx context.Context, siteID int64) ([]Category, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id, slug, name, position, in_nav FROM categories WHERE site_id=$1 ORDER BY position, name`, siteID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+categoryCols+` FROM categories WHERE site_id=$1 ORDER BY position, name`, siteID)
 	if err != nil {
 		return nil, err
 	}
@@ -240,12 +326,81 @@ func (s *Store) Categories(ctx context.Context, siteID int64) ([]Category, error
 	var out []Category
 	for rows.Next() {
 		var c Category
-		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &c.Position, &c.InNav); err != nil {
+		if err := scanCategory(rows, &c); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
 	}
 	return out, rows.Err()
+}
+
+// CategoriesWithCounts is Categories plus how many articles (any status) use each one.
+func (s *Store) CategoriesWithCounts(ctx context.Context, siteID int64) ([]Category, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT c.id, c.slug, c.name, c.description, c.position, c.in_nav, c.on_home,
+		(SELECT count(*) FROM articles a WHERE a.category_id=c.id) FROM categories c WHERE c.site_id=$1 ORDER BY c.position, c.name`, siteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Category
+	for rows.Next() {
+		var c Category
+		if err := scanCategory(rows, &c, &c.Articles); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// SaveCategory inserts (ID 0) or updates a rubrik. A new one goes to the end when Position is 0.
+func (s *Store) SaveCategory(ctx context.Context, siteID int64, c Category) (int64, error) {
+	if c.ID > 0 {
+		_, err := s.DB.ExecContext(ctx, `UPDATE categories SET slug=$3, name=$4, description=$5, position=$6, in_nav=$7, on_home=$8 WHERE id=$1 AND site_id=$2`,
+			c.ID, siteID, c.Slug, c.Name, c.Description, c.Position, c.InNav, c.OnHome)
+		return c.ID, err
+	}
+	var id int64
+	err := s.DB.QueryRowContext(ctx, `INSERT INTO categories(site_id, slug, name, description, position, in_nav, on_home)
+		VALUES ($1,$2,$3,$4, CASE WHEN $5::int > 0 THEN $5::int ELSE (SELECT COALESCE(max(position),0)+1 FROM categories WHERE site_id=$1) END, $6,$7) RETURNING id`,
+		siteID, c.Slug, c.Name, c.Description, c.Position, c.InNav, c.OnHome).Scan(&id)
+	return id, err
+}
+
+// MoveCategory swaps a rubrik with its neighbour (dir -1 = up, +1 = down) and renumbers 1..n.
+func (s *Store) MoveCategory(ctx context.Context, siteID, id int64, dir int) error {
+	cats, err := s.Categories(ctx, siteID)
+	if err != nil {
+		return err
+	}
+	i := -1
+	for k, c := range cats {
+		if c.ID == id {
+			i = k
+		}
+	}
+	j := i + dir
+	if i < 0 || j < 0 || j >= len(cats) {
+		return nil
+	}
+	cats[i], cats[j] = cats[j], cats[i]
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for k, c := range cats {
+		if _, err := tx.ExecContext(ctx, `UPDATE categories SET position=$3 WHERE id=$1 AND site_id=$2`, c.ID, siteID, k+1); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// DeleteCategory removes a rubrik; its articles stay, without a rubrik (URL becomes /berita/...).
+func (s *Store) DeleteCategory(ctx context.Context, siteID, id int64) error {
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM categories WHERE id=$1 AND site_id=$2`, id, siteID)
+	return err
 }
 
 type Region struct {

@@ -20,6 +20,10 @@
 <link rel="preload" href="/static/fonts/plus-jakarta-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/site.css?v=1">
 {{with .Meta.JSONLD}}<script type="application/ld+json">{{.}}</script>{{end}}
+{{with .Site.Settings.SearchConsole}}<meta name="google-site-verification" content="{{.}}">{{end}}
+{{with .Site.Settings.BingVerify}}<meta name="msvalidate.01" content="{{.}}">{{end}}
+{{with .Site.Settings.GA4}}<script async src="https://www.googletagmanager.com/gtag/js?id={{.}}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config',{{.}});</script>{{end}}
 </head>
 <body>
 <a class="skip" href="#isi">Langsung ke isi</a>
@@ -62,29 +66,22 @@
 {{define "footer"}}
 </main>
 <footer class="foot">
+  {{$set := .Site.Settings}}
   <div class="wrap foot-in">
     <div class="foot-brand">
       <div class="logo logo-foot">VO<span>X</span>IN</div>
-      <b>{{.Site.Settings.Tagline}}</b>
-      <p>{{.Site.Settings.Company}}<br>{{.Site.Settings.Address}}<br>{{.Site.Settings.PressStatus}}</p>
+      {{with $set.Tagline}}<b>{{.}}</b>{{end}}
+      {{if not $set.Footer.HideCompany}}<p>{{with $set.Company}}{{.}}<br>{{end}}{{with $set.Address}}{{.}}<br>{{end}}{{with $set.PressStatus}}{{.}}{{end}}</p>{{end}}
+      {{if not $set.Footer.HideSocial}}{{with $set.SocialLinks}}<div class="foot-social">{{range .}}<a href="{{.URL}}" rel="noopener" target="_blank">{{.Label}}</a>{{end}}</div>{{end}}{{end}}
     </div>
-    <nav aria-label="Redaksi">
-      <div class="foot-h">Redaksi</div>
-      <a href="/redaksi">Susunan redaksi</a>
-      <a href="/pedoman-media-siber">Pedoman pemberitaan media siber</a>
-      <a href="/kode-etik">Kode etik</a>
-      <a href="/koreksi-hak-jawab">Koreksi &amp; hak jawab</a>
-      <a href="/tentang">Tentang {{.Site.Name}}</a>
+    {{range $set.FooterCols $.Site.Name}}
+    <nav aria-label="{{.Title}}">
+      {{with .Title}}<div class="foot-h">{{.}}</div>{{end}}
+      {{range .Links}}<a href="{{.URL}}">{{.Label}}</a>{{end}}
     </nav>
-    <nav aria-label="Lainnya">
-      <div class="foot-h">Bisnis</div>
-      <a href="/kerja-sama">Kerja sama &amp; iklan</a>
-      <a href="/kontak">Kontak</a>
-      <a href="/privasi">Kebijakan privasi</a>
-      <a href="/rss.xml">RSS</a>
-    </nav>
+    {{end}}
   </div>
-  <div class="wrap foot-copy">© {{.Year}} {{.Site.Name}}. Konten yang disusun dengan bantuan AI selalu diperiksa editor.</div>
+  <div class="wrap foot-copy">{{$set.CopyrightLine .Year .Site.Name}}{{with $set.FooterNote}} {{.}}{{end}}</div>
 </footer>
 </body>
 </html>

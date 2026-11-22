@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: voxin
+      POSTGRES_PASSWORD: voxin
+      POSTGRES_DB: voxin_portal
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  portal:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://voxin:voxin@db:5432/voxin_portal?sslmode=disable
+    ports:
+      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:8091:8091"
+    volumes:
+      - media:/app/data
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:

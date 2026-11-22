@@ -1,0 +1,46 @@
+{{define "content"}}{{with .Body}}
+<div class="row-h"><h1 class="h1">Rubrik</h1></div>
+<p class="muted small">Rubrik menentukan menu atas voxin.id, alamat artikel (<code>voxin.id/rubrik/judul</code>), dan blok berita di beranda. Rubrik dari VOXIN Studio dicocokkan lewat nama atau slug.</p>
+<div class="cols">
+  <section class="panel">
+    <h2>Tambah rubrik</h2>
+    <form class="stack" method="post" action="/categories">
+      <label class="f">Nama<input class="input" name="name" placeholder="mis. Hukum" required></label>
+      <label class="f">Slug <span class="hint">kosongkan untuk dibuat dari nama</span><input class="input" name="slug" placeholder="hukum"></label>
+      <label class="f">Deskripsi <span class="hint">meta description halaman rubrik (SEO)</span><textarea class="input" name="description" rows="2"></textarea></label>
+      <label class="check"><input type="checkbox" name="in_nav" value="1" checked> Tampil di menu atas</label>
+      <label class="check"><input type="checkbox" name="on_home" value="1" checked> Boleh jadi blok di beranda</label>
+      <button class="btn primary" type="submit">Tambah</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>Daftar <span class="hint">urutan = urutan menu dan blok beranda</span></h2>
+    {{range $i, $c := .Cats}}
+    <details class="region-item">
+      <summary><b>{{$c.Name}}</b> <span class="muted small">/{{$c.Slug}} · {{$c.Articles}} artikel</span>
+        {{if $c.InNav}}<span class="tag">Menu</span>{{end}}{{if $c.OnHome}}<span class="tag">Beranda</span>{{end}}</summary>
+      <form class="stack" method="post" action="/categories">
+        <input type="hidden" name="id" value="{{$c.ID}}">
+        <div class="fgrid">
+          <label class="f">Nama<input class="input" name="name" value="{{$c.Name}}" required></label>
+          <label class="f">Slug<input class="input" name="slug" value="{{$c.Slug}}"></label>
+        </div>
+        {{if gt $c.Articles 0}}<p class="hint">Mengganti slug mengubah alamat {{$c.Articles}} artikel. Alamat lama otomatis dialihkan (301), jadi tautan yang sudah dibagikan tetap jalan.</p>{{end}}
+        {{if eq $c.Slug "cek-fakta"}}<p class="hint">Slug <code>cek-fakta</code> dipakai blok khusus Cek Fakta di beranda. Jangan ganti slug-nya kalau blok itu masih dipakai.</p>{{end}}
+        <label class="f">Deskripsi<textarea class="input" name="description" rows="2">{{$c.Description}}</textarea></label>
+        <label class="check"><input type="checkbox" name="in_nav" value="1" {{if $c.InNav}}checked{{end}}> Tampil di menu atas</label>
+        <label class="check"><input type="checkbox" name="on_home" value="1" {{if $c.OnHome}}checked{{end}}> Boleh jadi blok di beranda</label>
+        <div class="row-h"><button class="btn small primary" type="submit">Simpan</button><a class="btn small ghost" href="{{$.Body.BaseURL}}/{{$c.Slug}}" target="_blank" rel="noopener">Lihat rubrik</a></div>
+      </form>
+      <div class="row-h">
+        <form method="post" action="/categories/{{$c.ID}}/move"><input type="hidden" name="dir" value="up"><button class="btn small" type="submit" {{if eq $i 0}}disabled{{end}}>↑ Naik</button></form>
+        <form method="post" action="/categories/{{$c.ID}}/move"><input type="hidden" name="dir" value="down"><button class="btn small" type="submit">↓ Turun</button></form>
+        <span class="grow"></span>
+        <form method="post" action="/categories/{{$c.ID}}/delete" onsubmit="return confirm('Hapus rubrik {{$c.Name}}? {{$c.Articles}} artikel jadi tanpa rubrik.')"><button class="btn ghost small" type="submit">Hapus rubrik</button></form>
+      </div>
+    </details>
+    {{else}}<p class="muted small">Belum ada rubrik.</p>{{end}}
+    <p class="hint">Beranda menampilkan maksimal 3 blok rubrik (yang punya minimal 2 artikel terbit), mengikuti urutan di atas. Cek Fakta punya blok sendiri.</p>
+  </section>
+</div>
+{{end}}{{end}}

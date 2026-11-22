@@ -70,7 +70,13 @@
       <ul class="problems">{{range .Problems}}<li>{{.}}</li>{{end}}</ul>
       {{else}}<div class="ok-line">Siap terbit.</div>{{end}}
       {{if eq $a.Status "scheduled"}}<div class="small">Terjadwal: <b>{{waktu $a.ScheduledAt}}</b></div>{{end}}
-      {{if $a.PublishedAt}}<div class="small muted">Terbit pertama {{waktu $a.PublishedAt}}{{if $a.EditorName}} · editor {{$a.EditorName}}{{end}}</div>{{end}}
+      {{if $a.PublishedAt}}<div class="small muted">Tanggal terbit {{waktu $a.PublishedAt}}{{if $a.EditorName}} · editor {{$a.EditorName}}{{end}}</div>{{end}}
+      {{if .CanPublish}}
+      <label class="f">Tanggal terbit (WIB)
+        <span class="hint">{{if $a.PublishedAt}}ubah lalu klik "Simpan &amp; perbarui"; tanggal ini yang tampil di situs{{else}}kosongkan = sekarang · tanggal lewat = tanggal mundur · tanggal mendatang = dijadwalkan{{end}}</span>
+        <input class="input small" type="datetime-local" name="published_at" form="edform" value="{{if $a.PublishedAt}}{{localInput $a.PublishedAt}}{{else}}{{localInput $a.ScheduledAt}}{{end}}" {{if $a.PublishedAt}}max="{{.NowInput}}"{{end}}>
+      </label>
+      {{end}}
       <div class="acts">
         {{if .CanEdit}}<button class="btn" form="edform" type="submit" name="action" value="save">Simpan</button>{{end}}
         {{if .CanPublish}}
@@ -79,11 +85,7 @@
           {{else if eq $a.Status "unpublished"}}
             <button class="btn primary" form="edform" type="submit" name="action" value="republish">Terbitkan lagi</button>
           {{else}}
-            <button class="btn primary" form="edform" type="submit" name="action" value="publish">Terbitkan sekarang</button>
-            <div class="sched">
-              <input class="input small" type="datetime-local" name="scheduled_at" form="edform" value="{{localInput $a.ScheduledAt}}" aria-label="Jadwal terbit (WIB)">
-              <button class="btn small" form="edform" type="submit" name="action" value="schedule">Jadwalkan</button>
-            </div>
+            <button class="btn primary" form="edform" type="submit" name="action" value="publish">Terbitkan</button>
           {{end}}
           {{if or (eq $a.Status "review") (eq $a.Status "scheduled")}}<button class="btn ghost small" form="edform" type="submit" name="action" value="draft">Kembalikan ke draft</button>{{end}}
         {{else if .CanEdit}}

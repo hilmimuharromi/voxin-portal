@@ -39,7 +39,7 @@ type Server struct {
 	pages map[string]*template.Template
 }
 
-var pageFiles = []string{"login", "dashboard", "articles", "editor", "regions", "pages", "page_edit", "team", "user_edit", "analytics", "settings"}
+var pageFiles = []string{"login", "dashboard", "articles", "editor", "regions", "categories", "pages", "page_edit", "team", "user_edit", "analytics", "settings"}
 
 func New(app *core.App) (*Server, error) {
 	s := &Server{App: app, sess: auth.Sessions{Key: []byte(app.Cfg.SecretKey)}, pages: map[string]*template.Template{}}
@@ -156,6 +156,10 @@ func (s *Server) Handler() http.Handler {
 	a.HandleFunc("POST /articles/{id}", s.editorSave)
 	a.HandleFunc("POST /articles/{id}/preview", s.editorPreview)
 	a.HandleFunc("POST /articles/{id}/image", s.editorImage)
+	a.HandleFunc("GET /categories", s.requireRole("pemred", s.categories))
+	a.HandleFunc("POST /categories", s.requireRole("pemred", s.categorySave))
+	a.HandleFunc("POST /categories/{id}/move", s.requireRole("pemred", s.categoryMove))
+	a.HandleFunc("POST /categories/{id}/delete", s.requireRole("pemred", s.categoryDelete))
 	a.HandleFunc("GET /regions", s.requireRole("pemred", s.regions))
 	a.HandleFunc("POST /regions", s.requireRole("pemred", s.regionSave))
 	a.HandleFunc("POST /regions/{id}/logo", s.requireRole("pemred", s.regionLogo))
@@ -172,6 +176,8 @@ func (s *Server) Handler() http.Handler {
 	a.HandleFunc("GET /analytics", s.requireRole("editor", s.analytics))
 	a.HandleFunc("GET /settings", s.requireRole("pemred", s.settings))
 	a.HandleFunc("POST /settings", s.requireRole("pemred", s.settingsSave))
+	a.HandleFunc("POST /settings/analytics", s.requireRole("pemred", s.settingsAnalytics))
+	a.HandleFunc("POST /settings/footer", s.requireRole("pemred", s.settingsFooter))
 	a.HandleFunc("POST /settings/token", s.requireRole("pemred", s.settingsToken))
 	mux.Handle("/", s.requireLogin(a))
 	return s.sameOrigin(securityHeaders(mux))

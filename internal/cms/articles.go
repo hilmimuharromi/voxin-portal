@@ -155,6 +155,7 @@ type EditorVM struct {
 	TagsText   string
 	Views      int
 	PublicURL  string
+	NowInput   string // datetime-local "max" for already-published articles
 }
 
 func canEdit(u store.User, a store.Article) bool {
@@ -206,6 +207,7 @@ func (s *Server) editor(w http.ResponseWriter, r *http.Request) {
 	}
 	if a.Status == "published" || a.Status == "unpublished" {
 		vm.PublicURL = s.App.Cfg.BaseURL + a.Path()
+		vm.NowInput = time.Now().In(s.App.Loc).Format("2006-01-02T15:04")
 	}
 	title := a.Title
 	if title == "" {
@@ -215,6 +217,23 @@ func (s *Server) editor(w http.ResponseWriter, r *http.Request) {
 }
 
 // fromForm copies the editable fields from the form onto a.
+// publishDate reads the editor's "Tanggal terbit" (WIB). Empty means: keep the existing date,
+// or now for a first publish.
+func (s *Server) publishDate(r *http.Request) (time.Time, bool, error) {
+	v := strings.TrimSpace(firstNonEmpty(r.FormValue("published_at"), r.FormValue("scheduled_at")))
+	if v == "" {
+		return time.Time{}, false, nil
+	}
+	at, err := time.ParseInLocation("2006-01-02T15:04", v, s.App.Loc)
+	if err != nil {
+		return time.Time{}, false, fmt.Errorf("format tanggal terbit tidak dikenali")
+	}
+	if at.Year() < 2000 {
+		return time.Time{}, false, fmt.Errorf("tanggal terbit terlalu lama; cek tahunnya")
+	}
+	return at, true, nil
+}
+
 func (s *Server) fromForm(r *http.Request, a *store.Article, u store.User) {
 	f := r.Form
 	if t := f.Get("type"); store.TypeLabels[t] != "" {
@@ -341,21 +360,46 @@ func (s *Server) editorSave(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		switch action {
-		case "publish", "republish":
-			if err := s.App.Store.Publish(ctx, a.ID, u.ID); err != nil {
+		at, hasDate, err := s.publishDate(r)
+		if action == "unpublish" {
+			hasDate, err = false, nil
+		}
+		if hasDate && a.PublishedAt != nil && a.PublishedAt.In(s.App.Loc).Format("2006-01-02T15:04") == at.Format("2006-01-02T15:04") {
+			hasDate = false // unchanged: keep the exact stored time
+		}
+		if err != nil {
+			back(w, r, self, err.Error(), true)
+			return
+		}
+		future := hasDate && at.After(time.Now().Add(time.Minute))
+		if action == "schedule" && !future {
+			back(w, r, self, "Untuk menjadwalkan, isi tanggal dan jam yang akan datang.", true)
+			return
+		}
+		if future && (wasLive || action == "republish") {
+			back(w, r, self, "Artikel ini sudah pernah tayang; tanggal terbit tidak bisa di masa depan. Kosongkan atau isi tanggal yang sudah lewat.", true)
+			return
+		}
+		switch {
+		case action == "unpublish":
+		case future: // "Terbitkan" with a future date = schedule
+			_ = s.App.Store.Schedule(ctx, a.ID, u.ID, at)
+			msg = "Dijadwalkan terbit " + text.Waktu(at)
+		default:
+			var when *time.Time
+			if hasDate {
+				when = &at
+			}
+			if err := s.App.Store.Publish(ctx, a.ID, u.ID, when); err != nil {
 				back(w, r, self, err.Error(), true)
 				return
 			}
 			msg = "Terbit. Link: " + s.App.Cfg.BaseURL + a.Path()
-		case "schedule":
-			at, err := time.ParseInLocation("2006-01-02T15:04", r.FormValue("scheduled_at"), s.App.Loc)
-			if err != nil || at.Before(time.Now().Add(time.Minute)) {
-				back(w, r, self, "Isi tanggal dan jam terbit yang akan datang.", true)
-				return
+			if hasDate {
+				msg = "Terbit dengan tanggal " + text.Waktu(at) + ". Link: " + s.App.Cfg.BaseURL + a.Path()
 			}
-			_ = s.App.Store.Schedule(ctx, a.ID, u.ID, at)
-			msg = "Dijadwalkan terbit " + text.Waktu(at)
+		}
+		switch action {
 		case "unpublish":
 			note := strings.TrimSpace(r.FormValue("unpublish_note"))
 			if note == "" {

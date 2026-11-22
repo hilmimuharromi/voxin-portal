@@ -239,10 +239,11 @@ func (s *Store) SetSocial(ctx context.Context, id int64, links map[string]string
 	return tx.Commit()
 }
 
-// Publish marks an article published now (keeps the first publish time on re-publish).
-func (s *Store) Publish(ctx context.Context, id, editorID int64) error {
-	_, err := s.DB.ExecContext(ctx, `UPDATE articles SET status='published', editor_id=$2, published_at=COALESCE(published_at, now()),
-		scheduled_at=NULL, unpublish_note='', updated_at=now() WHERE id=$1`, id, nullID(editorID))
+// Publish marks an article published. at sets the publish date shown on the site (the editor's
+// "Tanggal terbit"); nil keeps the first publish time, or now for a first publish.
+func (s *Store) Publish(ctx context.Context, id, editorID int64, at *time.Time) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE articles SET status='published', editor_id=$2, published_at=COALESCE($3, published_at, now()),
+		scheduled_at=NULL, unpublish_note='', updated_at=now() WHERE id=$1`, id, nullID(editorID), at)
 	return err
 }
 

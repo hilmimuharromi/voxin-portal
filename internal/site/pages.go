@@ -93,7 +93,7 @@ func (s *Server) home(r *http.Request) response {
 	vm.Facts, _, _ = st.Articles(ctx, store.Query{SiteID: site.ID, Category: "cek-fakta", Limit: 3})
 	cats, _ := st.Categories(ctx, site.ID)
 	for _, c := range cats {
-		if len(vm.Blocks) == 3 || c.Slug == "cek-fakta" {
+		if len(vm.Blocks) == 3 || c.Slug == "cek-fakta" || !c.OnHome {
 			continue
 		}
 		list, _, _ := st.Articles(ctx, store.Query{SiteID: site.ID, Category: c.Slug, Limit: 4})
@@ -298,7 +298,7 @@ func (s *Server) pageOrCategory(r *http.Request) response {
 		if c.Slug == slug {
 			vm := &ListVM{Kind: "kategori", Title: c.Name, Page: page(r)}
 			return s.list(ctx, store.Query{SiteID: site.ID, Category: c.Slug}, vm, c.Slug,
-				Meta{Title: "Berita " + c.Name + " Terkini", Description: "Kumpulan berita " + c.Name + " terbaru dari " + site.Name + ".", Canonical: s.App.Cfg.BaseURL + "/" + c.Slug}, "/"+c.Slug, nil)
+				Meta{Title: "Berita " + c.Name + " Terkini", Description: firstNonEmpty(c.Description, "Kumpulan berita "+c.Name+" terbaru dari "+site.Name+"."), Canonical: s.App.Cfg.BaseURL + "/" + c.Slug}, "/"+c.Slug, nil)
 		}
 	}
 	return s.notFoundResp(ctx)
