@@ -91,7 +91,7 @@
 
 {{define "meta-line"}}Oleh <b>Redaksi</b> · {{lalu .PublishedAt}}{{if eq .Type "kurasi"}}{{with .SourceName}} · Dirangkum dari {{.}}{{end}}{{end}}{{end}}
 
-{{define "thumb"}}{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="225">{{end}}{{end}}
+{{define "thumb"}}{{if .ImagePath}}<img style="object-position:{{.ImageFocus}}" src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="225">{{end}}{{end}}
 
 {{define "row"}}
 <article class="row-card">

@@ -90,6 +90,11 @@ func (s *Server) engineArticle(w http.ResponseWriter, r *http.Request) {
 			a.CategoryID, a.CategorySlug = c.ID, c.Slug
 		}
 	}
+	if a.CategoryID == 0 && wantCat != "" { // rubrik lama, mis. "Bisnis" atau "Tren"
+		if c, err := s.App.Store.CategoryByAlias(ctx, site.ID, wantCat); err == nil {
+			a.CategoryID, a.CategorySlug = c.ID, c.Slug
+		}
+	}
 	a.Slug, err = s.App.UniqueSlug(ctx, site.ID, firstNonEmpty(p.Slug, p.Title), 0)
 	if err != nil {
 		jsonOut(w, 500, map[string]string{"error": err.Error()})

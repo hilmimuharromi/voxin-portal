@@ -10,19 +10,40 @@
 <form class="filters" method="get" action="/articles">
   <div class="seg">
     <a href="/articles{{if .Mine}}?mine=1{{end}}" {{if eq .Status ""}}class="on"{{end}}>Semua</a>
-    {{range $s := list "review" "draft" "scheduled" "published" "unpublished"}}<a href="/articles?status={{$s}}{{if $.Body.Mine}}&mine=1{{end}}" {{if eq $.Body.Status $s}}class="on"{{end}}>{{statusLabel $s}}{{with index $.Body.Counts $s}} <span class="count">{{.}}</span>{{end}}</a>{{end}}
+    {{range $s := list "review" "draft" "scheduled" "published" "unpublished" "archived"}}<a href="/articles?status={{$s}}{{if $.Body.Mine}}&mine=1{{end}}" {{if eq $.Body.Status $s}}class="on"{{end}}>{{statusLabel $s}}{{with index $.Body.Counts $s}} <span class="count">{{.}}</span>{{end}}</a>{{end}}
   </div>
   <input type="hidden" name="status" value="{{.Status}}">
   <select class="input small" name="type" aria-label="Jenis" onchange="this.form.submit()"><option value="">Semua jenis</option>{{range $k := list "berita" "kurasi" "kerja_sama" "opini"}}<option value="{{$k}}" {{if eq $.Body.Type $k}}selected{{end}}>{{typeLabel $k}}</option>{{end}}</select>
   <input class="input small" type="search" name="q" value="{{.Q}}" placeholder="Cari judul/isi" aria-label="Cari">
   {{if canPublish $.User.Role}}<label class="check"><input type="checkbox" name="mine" value="1" {{if .Mine}}checked{{end}} onchange="this.form.submit()"> Punyaku saja</label>{{end}}
 </form>
+<form id="bulk" method="post" action="/articles/bulk">
+  <input type="hidden" name="return" value="{{.Return}}">
+  <div class="bulkbar" hidden>
+    <span class="small"><b data-bulk-count>0</b> dipilih</span>
+    {{if .CanPublish}}{{if eq .Status "archived"}}<button class="btn small" type="submit" name="bulk" value="restore">Pulihkan ke draft</button>
+    {{else}}<button class="btn small" type="submit" name="bulk" value="archive" onclick="return confirm('Arsipkan artikel terpilih? Semuanya hilang dari situs, bisa dipulihkan dari tab Arsip.')">Arsipkan</button><script>
+(function () {
+  var bar = document.querySelector('.bulkbar'), n = document.querySelector('[data-bulk-count]'), all = document.querySelector('[data-bulk-all]');
+  function boxes() { return document.querySelectorAll('input[name=ids]'); }
+  function upd() { var c = 0; boxes().forEach(function (b) { if (b.checked) c++; }); n.textContent = c; bar.hidden = c === 0; }
+  document.addEventListener('change', function (e) {
+    if (e.target === all) boxes().forEach(function (b) { b.checked = all.checked; });
+    if (e.target === all || e.target.name === 'ids') upd();
+  });
+})();
+</script>
+{{end}}{{end}}
+    <button class="btn small danger" type="submit" name="bulk" value="delete" onclick="return confirm('Hapus PERMANEN artikel terpilih? Tidak bisa dibatalkan.{{if not .CanManage}} (Kamu hanya bisa menghapus draft milikmu.){{end}}')">Hapus permanen</button>
+  </div>
+</form>
 <div class="panel tight">
   <table class="tbl">
-    <thead><tr><th>Judul</th><th class="hide-sm">Jenis</th><th>Status</th><th class="hide-sm">Penulis</th><th class="hide-sm num">Tayangan</th><th class="hide-sm">Diubah</th></tr></thead>
+    <thead><tr><th class="cbx"><input type="checkbox" data-bulk-all aria-label="Pilih semua"></th><th>Judul</th><th class="hide-sm">Jenis</th><th>Status</th><th class="hide-sm">Penulis</th><th class="hide-sm num">Tayangan</th><th class="hide-sm">Diubah</th></tr></thead>
     <tbody>
     {{range .Items}}
     <tr>
+      <td class="cbx"><input type="checkbox" name="ids" value="{{.ID}}" form="bulk" aria-label="Pilih {{.Title}}"></td>
       <td><a class="tlink" href="/articles/{{.ID}}">{{if .Title}}{{.Title}}{{else}}(tanpa judul){{end}}</a>
         <div class="tiny muted">{{if .CategoryName}}{{.CategoryName}}{{end}}{{if .RegionName}} · {{.RegionName}}{{end}}{{if hasPrefix .EngineRef "engine:"}} · dari engine{{end}}{{if eq .Status "scheduled"}} · {{waktu .ScheduledAt}}{{end}}</div></td>
       <td class="hide-sm">{{template "type" .Type}}</td>
@@ -32,10 +53,21 @@
       <td class="hide-sm small muted">{{lalu .UpdatedAt}}</td>
     </tr>
     {{else}}
-    <tr><td colspan="6" class="muted">Tidak ada artikel.</td></tr>
+    <tr><td colspan="7" class="muted">{{if eq .Status "archived"}}Arsip kosong.{{else}}Tidak ada artikel.{{end}}</td></tr>
     {{end}}
     </tbody>
   </table>
 </div>
 {{if gt .Pages 1}}<div class="pager">{{with .Prev}}<a class="btn small" href="{{.}}">← Sebelumnya</a>{{end}}<span class="muted small">Halaman {{.Page}} / {{.Pages}} · {{.Total}} artikel</span>{{with .Next}}<a class="btn small" href="{{.}}">Berikutnya →</a>{{end}}</div>{{end}}
+<script>
+(function () {
+  var bar = document.querySelector('.bulkbar'), n = document.querySelector('[data-bulk-count]'), all = document.querySelector('[data-bulk-all]');
+  function boxes() { return document.querySelectorAll('input[name=ids]'); }
+  function upd() { var c = 0; boxes().forEach(function (b) { if (b.checked) c++; }); n.textContent = c; bar.hidden = c === 0; }
+  document.addEventListener('change', function (e) {
+    if (e.target === all) boxes().forEach(function (b) { b.checked = all.checked; });
+    if (e.target === all || e.target.name === 'ids') upd();
+  });
+})();
+</script>
 {{end}}{{end}}

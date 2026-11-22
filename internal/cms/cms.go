@@ -82,6 +82,8 @@ func (s *Server) funcs() template.FuncMap {
 		"canPublish":  auth.CanPublish,
 		"canManage":   auth.CanManage,
 		"publicURL":   func(p string) string { return s.App.Cfg.BaseURL + p },
+		"focusX":      func(f string) string { x, _, _ := strings.Cut(f, " "); return x },
+		"focusY":      func(f string) string { _, y, _ := strings.Cut(f, " "); return y },
 		"localInput": func(t *time.Time) string {
 			if t == nil {
 				return ""
@@ -152,6 +154,7 @@ func (s *Server) Handler() http.Handler {
 	a.HandleFunc("GET /{$}", s.dashboard)
 	a.HandleFunc("GET /articles", s.articles)
 	a.HandleFunc("POST /articles/new", s.articleNew)
+	a.HandleFunc("POST /articles/bulk", s.articlesBulk)
 	a.HandleFunc("GET /articles/{id}", s.editor)
 	a.HandleFunc("POST /articles/{id}", s.editorSave)
 	a.HandleFunc("POST /articles/{id}/preview", s.editorPreview)

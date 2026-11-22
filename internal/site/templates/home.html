@@ -6,7 +6,7 @@
     {{with .Hero}}
     <article class="hero">
       <a class="hero-img ph" href="{{.Path}}" tabindex="-1" aria-hidden="true">
-        {{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 1200}}" srcset="{{srcset .ImagePath .ImageVariants}}" sizes="(max-width: 900px) 100vw, 800px" alt="" width="1200" height="675" fetchpriority="high">{{end}}
+        {{if .ImagePath}}<img style="object-position:{{.ImageFocus}}" src="{{img .ImagePath .ImageVariants 1200}}" srcset="{{srcset .ImagePath .ImageVariants}}" sizes="(max-width: 900px) 100vw, 800px" alt="" width="1200" height="675" fetchpriority="high">{{end}}
         <span class="over-chip">{{template "chip" .}}</span>
         {{if .ImageCredit}}<span class="over-credit">{{.ImageCredit}}</span>{{end}}
       </a>
@@ -49,7 +49,7 @@
     <div class="grid4">
       {{range .RegionArt}}
       <article class="card">
-        <a class="card-img ph" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="250">{{end}}</a>
+        <a class="card-img ph" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img style="object-position:{{.ImageFocus}}" src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy" width="400" height="250">{{end}}</a>
         <div class="card-tags">{{if eq .Type "kerja_sama"}}<span class="chip ks">Kerja sama</span>{{else}}<span class="chip line">Liputan</span>{{end}}<span class="place">{{.RegionName}}</span></div>
         <h3><a href="{{.Path}}">{{.Title}}</a></h3>
         <div class="meta">{{template "meta-line" .}}</div>
@@ -75,7 +75,7 @@
     <div class="cat-col">
       <h2 class="display cat-h"><a href="/{{.Cat.Slug}}">{{.Cat.Name}}</a></h2>
       {{with .Lead}}
-      <a class="card-img ph wide" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 800}}" alt="" loading="lazy" width="800" height="450">{{end}}</a>
+      <a class="card-img ph wide" href="{{.Path}}" tabindex="-1" aria-hidden="true">{{if .ImagePath}}<img style="object-position:{{.ImageFocus}}" src="{{img .ImagePath .ImageVariants 800}}" alt="" loading="lazy" width="800" height="450">{{end}}</a>
       <h3><a href="{{.Path}}">{{.Title}}</a></h3>
       {{end}}
       {{range .Items}}<a class="cat-item" href="{{.Path}}">{{.Title}}</a>{{end}}
@@ -97,7 +97,7 @@
     <div class="grid5">
       {{range .Social}}
       <a class="social-card" href="{{.Path}}">
-        <span class="sc-img ph">{{if .ImagePath}}<img src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy">{{end}}</span>
+        <span class="sc-img ph">{{if .ImagePath}}<img style="object-position:{{.ImageFocus}}" src="{{img .ImagePath .ImageVariants 400}}" alt="" loading="lazy">{{end}}</span>
         <span class="sc-t">{{.Title}}</span>
         <span class="sc-wm">VO<span>X</span>IN</span>
       </a>

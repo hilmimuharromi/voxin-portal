@@ -28,8 +28,8 @@
       <button class="btn" type="button" data-copy="{{.ShareURL}}">Salin link</button>
     </div>
     {{if $a.ImagePath}}
-    <figure class="art-fig">
-      <img src="{{img $a.ImagePath $a.ImageVariants 1200}}" srcset="{{srcset $a.ImagePath $a.ImageVariants}}" sizes="(max-width: 760px) 100vw, 760px" alt="{{$a.ImageCaption}}" width="1200" height="675" fetchpriority="high">
+    <figure class="art-fig{{if $a.ImagePortrait}} portrait{{end}}">
+      <img src="{{img $a.ImagePath $a.ImageVariants 1200}}" srcset="{{srcset $a.ImagePath $a.ImageVariants}}" sizes="(max-width: 760px) 100vw, 760px" alt="{{$a.ImageCaption}}" width="1200" height="{{$a.ImageHeightFor 1200}}" fetchpriority="high">
       <figcaption>{{with $a.ImageCaption}}{{.}}. {{end}}{{$a.ImageCredit}}</figcaption>
     </figure>
     {{end}}

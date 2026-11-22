@@ -113,8 +113,15 @@
     <section class="panel">
       <h2>Foto utama</h2>
       {{if $a.ImagePath}}
-      <img class="ed-img" src="/media/{{$a.ImagePath}}" alt="">
+      <div class="focus-pick" data-focus-pick title="Klik bagian foto yang paling penting">
+        <img src="/media/{{$a.ImagePath}}" alt="">
+        <span class="focus-dot" style="left:{{$a.ImageFocus | focusX}};top:{{$a.ImageFocus | focusY}}"></span>
+      </div>
+      <p class="tiny muted">{{if $a.ImagePortrait}}Foto potret: di halaman artikel tampil utuh. {{end}}Klik bagian terpenting (mis. wajah) agar tidak terpotong di kartu dan thumbnail, lalu Simpan.</p>
+      <div class="focus-prev"><span class="fp-169"><img src="/media/{{$a.ImagePath}}" alt="" style="object-position:{{$a.ImageFocus}}"></span><span class="fp-43"><img src="/media/{{$a.ImagePath}}" alt="" style="object-position:{{$a.ImageFocus}}"></span></div>
       <fieldset {{if not .CanEdit}}disabled{{end}} class="plain stack">
+      <input type="hidden" name="image_focus" form="edform" value="{{$a.ImageFocusRaw}}" data-focus-input>
+      {{if $a.ImageFocusRaw}}<label class="check"><input type="checkbox" name="image_focus_auto" value="1" form="edform"> Kembalikan fokus otomatis</label>{{end}}
       <label class="f">Kredit (wajib)<input class="input" name="image_credit" form="edform" value="{{$a.ImageCredit}}" placeholder="Foto: …"></label>
       <label class="f">Keterangan<input class="input" name="image_caption" form="edform" value="{{$a.ImageCaption}}"></label>
       </fieldset>
@@ -146,13 +153,42 @@
     </section>
     {{end}}
 
-    {{if and .CanEdit (or (eq $a.Status "draft") (eq $a.Status "review"))}}
-    <button class="btn ghost small" form="edform" type="submit" name="action" value="delete" onclick="return confirm('Hapus draft ini?')">Hapus draft</button>
+    {{if or .CanPublish .CanDelete}}
+    <section class="panel stack">
+      <h2>Arsip &amp; hapus</h2>
+      {{if eq $a.Status "archived"}}
+        <p class="tiny muted">Artikel ini diarsipkan: tidak tampil di situs (alamatnya 404), tapi masih tersimpan di sini.</p>
+        {{if .CanPublish}}<div class="row-h">
+          <button class="btn small" form="edform" type="submit" name="action" value="restore">Pulihkan ke draft</button>
+          {{if $a.PublishedAt}}<button class="btn small primary" form="edform" type="submit" name="action" value="republish">Terbitkan lagi</button>{{end}}
+        </div>{{end}}
+      {{else if .CanPublish}}
+        <p class="tiny muted">Arsipkan menyembunyikan artikel dari situs tanpa catatan publik dan tanpa menghapusnya. Untuk koreksi atau hak jawab, pakai "Turunkan" agar alasannya tampil.</p>
+        <button class="btn small" form="edform" type="submit" name="action" value="archive" onclick="return confirm('Arsipkan artikel ini? Artikel hilang dari situs, bisa dipulihkan kapan saja.')">Arsipkan</button>
+      {{end}}
+      {{if .CanDelete}}
+        <p class="tiny muted">Hapus permanen tidak bisa dibatalkan: isi, riwayat versi, dan tautan medsosnya ikut terhapus{{if $a.PublishedAt}}, dan alamat artikelnya jadi 404{{end}}.</p>
+        <button class="btn danger small" form="edform" type="submit" name="action" value="delete" onclick="return confirm('Hapus PERMANEN artikel ini? Tidak bisa dibatalkan.')">{{if or (eq $a.Status "draft") (eq $a.Status "review")}}Hapus draft{{else}}Hapus permanen{{end}}</button>
+      {{end}}
+    </section>
     {{end}}
   </aside>
 </div>
 
 <script>
+(function () {
+  var box = document.querySelector('[data-focus-pick]'), inp = document.querySelector('[data-focus-input]');
+  if (!box || !inp || inp.closest('fieldset[disabled]')) return;
+  box.addEventListener('click', function (e) {
+    var r = box.getBoundingClientRect();
+    var x = Math.round(Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100)));
+    var y = Math.round(Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100)));
+    var v = x + '% ' + y + '%';
+    inp.value = v;
+    var d = box.querySelector('.focus-dot'); d.style.left = x + '%'; d.style.top = y + '%';
+    document.querySelectorAll('.focus-prev img').forEach(function (i) { i.style.objectPosition = v; });
+  });
+})();
 var hints = {berita: 'Liputan wartawan sendiri. Wajib byline penulis.', kurasi: 'Dirangkum dari media lain. Wajib menyebut media sumber; tampil "Dirangkum dari …".', kerja_sama: 'Konten kerja sama pemda/mitra. Wajib pilih daerah; tampil label KERJA SAMA.', opini: 'Tulisan kontributor. Tampil label OPINI.'};
 function vxType(el){ document.querySelectorAll('.types label').forEach(function(l){ l.classList.toggle('on', l.contains(el)); }); document.getElementById('type-hint').textContent = hints[el.value] || ''; }
 function vxCount(el, id, max, unit){ var n = unit === 'kata' ? el.value.trim().split(/\s+/).filter(Boolean).length : el.value.length; var o = document.getElementById(id); o.textContent = n + ' ' + unit + (n > max ? ' · terlalu panjang (maks ' + max + ')' : ''); o.classList.toggle('over', n > max); }

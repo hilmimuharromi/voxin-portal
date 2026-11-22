@@ -58,16 +58,21 @@ func (s *Server) categorySave(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if _, err := s.App.Store.SaveCategory(ctx, site.ID, c); err != nil {
+	newID, err := s.App.Store.SaveCategory(ctx, site.ID, c)
+	if err != nil {
 		back(w, r, "/categories", "Gagal menyimpan: "+err.Error(), true)
 		return
+	}
+	_ = s.App.Store.DropCategoryAlias(ctx, site.ID, slug)
+	if oldSlug != "" && oldSlug != slug {
+		_ = s.App.Store.AddCategoryAlias(ctx, site.ID, oldSlug, newID) // /slug-lama tetap jalan
 	}
 	s.App.Cache.Clear()
 	msg := "Rubrik " + name + " disimpan."
 	if id == 0 {
 		msg = "Rubrik " + name + " ditambahkan. Sudah bisa dipilih di editor artikel."
 	} else if oldSlug != "" && oldSlug != slug {
-		msg += " Alamat lama /" + oldSlug + "/... otomatis dialihkan ke /" + slug + "/..."
+		msg += " Alamat lama /" + oldSlug + " dan /" + oldSlug + "/... otomatis dialihkan ke /" + slug + "."
 	}
 	back(w, r, "/categories", msg, false)
 }

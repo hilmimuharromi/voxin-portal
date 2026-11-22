@@ -63,18 +63,21 @@ func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
 // ---------- list ----------
 
 type ListVM struct {
-	Items  []store.Article
-	Total  int
-	Status string
-	Type   string
-	Q      string
-	Mine   bool
-	Counts map[string]int
-	Views  map[int64]int
-	Page   int
-	Pages  int
-	Prev   string
-	Next   string
+	Items      []store.Article
+	Total      int
+	Status     string
+	Type       string
+	Q          string
+	Mine       bool
+	Counts     map[string]int
+	Views      map[int64]int
+	Page       int
+	Pages      int
+	Prev       string
+	Next       string
+	Return     string
+	CanPublish bool
+	CanManage  bool
 }
 
 func (s *Server) articles(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +94,7 @@ func (s *Server) articles(w http.ResponseWriter, r *http.Request) {
 	if vm.Status != "" {
 		query.Statuses = []string{vm.Status}
 	} else {
-		query.Statuses = []string{"draft", "review", "scheduled", "published", "unpublished"}
+		query.Statuses = []string{"draft", "review", "scheduled", "published", "unpublished"} // arsip punya tab sendiri
 	}
 	if vm.Mine || !auth.CanPublish(u.Role) {
 		query.AuthorID = u.ID
@@ -121,6 +124,8 @@ func (s *Server) articles(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, a.ID)
 	}
 	vm.Views, _ = s.App.Store.ArticleViews(ctx, site.ID, ids, 0)
+	vm.Return = r.URL.RequestURI()
+	vm.CanPublish, vm.CanManage = auth.CanPublish(u.Role), auth.CanManage(u.Role)
 	s.render(w, r, "articles", "Artikel", "articles", vm)
 }
 
@@ -156,6 +161,64 @@ type EditorVM struct {
 	Views      int
 	PublicURL  string
 	NowInput   string // datetime-local "max" for already-published articles
+	CanDelete  bool
+}
+
+// canDelete: pemred/admin may delete anything for good; authors only their own drafts.
+func canDelete(u store.User, a store.Article) bool {
+	if auth.CanManage(u.Role) {
+		return true
+	}
+	return a.AuthorID == u.ID && (a.Status == "draft" || a.Status == "review")
+}
+
+// articlesBulk archives, restores or deletes the ticked articles in the list.
+func (s *Server) articlesBulk(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	u := userFrom(r)
+	site, _ := s.App.Site(ctx)
+	_ = r.ParseForm()
+	ret := firstNonEmpty(r.FormValue("return"), "/articles")
+	if !strings.HasPrefix(ret, "/articles") {
+		ret = "/articles"
+	}
+	action := r.FormValue("bulk")
+	var done, skipped int
+	for _, v := range r.Form["ids"] {
+		id, _ := strconv.ParseInt(v, 10, 64)
+		a, err := s.App.Store.GetArticle(ctx, id)
+		if err != nil || a.SiteID != site.ID {
+			skipped++
+			continue
+		}
+		switch {
+		case action == "archive" && auth.CanPublish(u.Role) && a.Status != "archived":
+			err = s.App.Store.SetStatus(ctx, a.ID, "archived", "")
+		case action == "restore" && auth.CanPublish(u.Role) && a.Status == "archived":
+			err = s.App.Store.SetStatus(ctx, a.ID, "draft", "")
+		case action == "delete" && canDelete(u, a):
+			err = s.App.Store.DeleteArticle(ctx, a.ID)
+		default:
+			skipped++
+			continue
+		}
+		if err != nil {
+			skipped++
+			continue
+		}
+		done++
+	}
+	if done == 0 {
+		back(w, r, ret, "Tidak ada artikel yang diproses. Centang artikel dulu, atau kamu tidak punya izin untuk aksi ini.", true)
+		return
+	}
+	s.App.Cache.Clear()
+	verb := map[string]string{"archive": "diarsipkan", "restore": "dipulihkan ke draft", "delete": "dihapus permanen"}[action]
+	msg := fmt.Sprintf("%d artikel %s.", done, verb)
+	if skipped > 0 {
+		msg += fmt.Sprintf(" %d dilewati (tidak diizinkan atau sudah berstatus itu).", skipped)
+	}
+	back(w, r, ret, msg, false)
 }
 
 func canEdit(u store.User, a store.Article) bool {
@@ -187,7 +250,7 @@ func (s *Server) editor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := userFrom(r)
-	vm := EditorVM{A: a, CanEdit: canEdit(u, a), CanPublish: auth.CanPublish(u.Role), Types: store.ArticleTypes, Problems: core.PublishProblems(a)}
+	vm := EditorVM{A: a, CanEdit: canEdit(u, a), CanPublish: auth.CanPublish(u.Role), CanDelete: canDelete(u, a), Types: store.ArticleTypes, Problems: core.PublishProblems(a)}
 	vm.Categories, _ = s.App.Store.Categories(ctx, site.ID)
 	vm.Regions, _ = s.App.Store.Regions(ctx, site.ID)
 	users, _ := s.App.Store.ListUsers(ctx)
@@ -329,6 +392,11 @@ func (s *Server) editorSave(w http.ResponseWriter, r *http.Request) {
 		_ = s.App.Store.SetSocial(ctx, a.ID, map[string]string{"instagram": r.FormValue("social_instagram"), "tiktok": r.FormValue("social_tiktok"), "threads": r.FormValue("social_threads")})
 		if a.ImageID > 0 {
 			_ = s.App.Store.UpdateMediaText(ctx, a.ImageID, strings.TrimSpace(r.FormValue("image_credit")), strings.TrimSpace(r.FormValue("image_caption")))
+			if r.FormValue("image_focus_auto") == "1" {
+				_ = s.App.Store.SetMediaFocus(ctx, a.ImageID, "")
+			} else if f := strings.TrimSpace(r.FormValue("image_focus")); store.ValidFocus(f) && f != a.ImageFocusRaw {
+				_ = s.App.Store.SetMediaFocus(ctx, a.ImageID, f)
+			}
 		}
 		a, _ = s.App.Store.GetArticle(ctx, a.ID)
 		if wasLive && a.Path() != oldPath {
@@ -409,14 +477,28 @@ func (s *Server) editorSave(w http.ResponseWriter, r *http.Request) {
 			_ = s.App.Store.SetStatus(ctx, a.ID, "unpublished", note)
 			msg = "Artikel diturunkan. Halaman publik menampilkan alasannya."
 		}
+	case "archive":
+		if !auth.CanPublish(u.Role) {
+			back(w, r, self, "Hanya editor atau pemred yang bisa mengarsipkan.", true)
+			return
+		}
+		_ = s.App.Store.SetStatus(ctx, a.ID, "archived", "")
+		msg = "Diarsipkan. Artikel tidak tampil lagi di situs; pulihkan kapan saja dari tab Arsip."
+	case "restore":
+		if !auth.CanPublish(u.Role) {
+			back(w, r, self, "Hanya editor atau pemred yang bisa memulihkan arsip.", true)
+			return
+		}
+		_ = s.App.Store.SetStatus(ctx, a.ID, "draft", "")
+		msg = "Dipulihkan ke draft."
 	case "delete":
-		if a.Status != "draft" && a.Status != "review" {
-			back(w, r, self, "Hanya draft yang bisa dihapus. Artikel terbit diturunkan, bukan dihapus.", true)
+		if !canDelete(u, a) {
+			back(w, r, self, "Hapus permanen hanya untuk Pemimpin Redaksi atau Admin. Kamu bisa mengarsipkan atau menurunkannya.", true)
 			return
 		}
 		_ = s.App.Store.DeleteArticle(ctx, a.ID)
 		s.App.Cache.Clear()
-		back(w, r, "/articles", "Draft dihapus.", false)
+		back(w, r, "/articles", "Artikel \""+firstNonEmpty(a.Title, "tanpa judul")+"\" dihapus permanen.", false)
 		return
 	}
 	s.App.Cache.Clear()

@@ -301,6 +301,14 @@ func (s *Server) pageOrCategory(r *http.Request) response {
 				Meta{Title: "Berita " + c.Name + " Terkini", Description: firstNonEmpty(c.Description, "Kumpulan berita "+c.Name+" terbaru dari "+site.Name+"."), Canonical: s.App.Cfg.BaseURL + "/" + c.Slug}, "/"+c.Slug, nil)
 		}
 	}
+	// rubrik lama (diganti nama atau digabung) dialihkan ke rubrik penggantinya
+	if c, err := s.App.Store.CategoryByAlias(ctx, site.ID, slug); err == nil {
+		loc := "/" + c.Slug
+		if q := r.URL.RawQuery; q != "" {
+			loc += "?" + q
+		}
+		return response{status: http.StatusMovedPermanently, loc: loc}
+	}
 	return s.notFoundResp(ctx)
 }
 

@@ -141,7 +141,10 @@ main{display:block}
 .byline a:hover b{color:var(--orange-dark)}
 .share{display:flex;gap:8px;flex-wrap:wrap}.share .btn{flex:1 1 160px}
 .art-fig{margin:4px 0 0}
-.art-fig img{width:100%;aspect-ratio:16/9;object-fit:cover}
+.art-fig img{width:100%;height:auto}
+.art-fig.portrait{background:#ece6d8;display:flex;flex-direction:column}
+.art-fig.portrait img{width:auto;max-width:100%;max-height:min(85vh,900px);margin:0 auto}
+.art-fig.portrait figcaption{background:var(--cream);padding-top:6px;margin-top:0}
 .art-fig figcaption{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4}
 .art-body{font-size:18px;line-height:1.7;display:flex;flex-direction:column;gap:18px}
 .art-body h2{font-size:23px;line-height:1.3;font-weight:800;margin-top:8px}

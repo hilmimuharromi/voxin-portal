@@ -397,6 +397,30 @@ func (s *Store) MoveCategory(ctx context.Context, siteID, id int64, dir int) err
 	return tx.Commit()
 }
 
+// CategoryByAlias resolves a former rubrik slug (renamed or merged) to its current rubrik.
+func (s *Store) CategoryByAlias(ctx context.Context, siteID int64, slug string) (Category, error) {
+	var c Category
+	err := scanCategory(s.DB.QueryRowContext(ctx, `SELECT c.id, c.slug, c.name, c.description, c.position, c.in_nav, c.on_home
+		FROM category_aliases x JOIN categories c ON c.id = x.category_id WHERE x.site_id=$1 AND x.slug=$2`, siteID, slug), &c)
+	if errors.Is(err, sql.ErrNoRows) {
+		return c, ErrNotFound
+	}
+	return c, err
+}
+
+// AddCategoryAlias remembers an old slug so its URL and engine category keep working.
+func (s *Store) AddCategoryAlias(ctx context.Context, siteID int64, slug string, categoryID int64) error {
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO category_aliases(site_id, slug, category_id) VALUES ($1,$2,$3)
+		ON CONFLICT (site_id, slug) DO UPDATE SET category_id=EXCLUDED.category_id`, siteID, slug, categoryID)
+	return err
+}
+
+// DropCategoryAlias frees a slug that a rubrik now uses for real.
+func (s *Store) DropCategoryAlias(ctx context.Context, siteID int64, slug string) error {
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM category_aliases WHERE site_id=$1 AND slug=$2`, siteID, slug)
+	return err
+}
+
 // DeleteCategory removes a rubrik; its articles stay, without a rubrik (URL becomes /berita/...).
 func (s *Store) DeleteCategory(ctx context.Context, siteID, id int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM categories WHERE id=$1 AND site_id=$2`, id, siteID)

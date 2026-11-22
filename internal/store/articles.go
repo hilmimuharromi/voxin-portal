@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -14,7 +15,7 @@ var ArticleTypes = []string{"berita", "kurasi", "kerja_sama", "opini"}
 
 var TypeLabels = map[string]string{"berita": "Berita", "kurasi": "Kurasi", "kerja_sama": "Kerja Sama", "opini": "Opini"}
 
-var StatusLabels = map[string]string{"draft": "Draft", "review": "Perlu ditinjau", "scheduled": "Terjadwal", "published": "Terbit", "unpublished": "Diturunkan"}
+var StatusLabels = map[string]string{"draft": "Draft", "review": "Perlu ditinjau", "scheduled": "Terjadwal", "published": "Terbit", "unpublished": "Diturunkan", "archived": "Arsip"}
 
 type Article struct {
 	ID            int64
@@ -45,6 +46,9 @@ type Article struct {
 	ImageCredit   string
 	ImageCaption  string
 	ImageVariants string // raw JSON
+	ImageW        int
+	ImageH        int
+	ImageFocusRaw string // "x% y%" chosen in the CMS; empty = automatic
 	SourceName    string
 	SourceURL     string
 	AIAssisted    bool
@@ -71,6 +75,34 @@ func (a Article) Path() string {
 	return "/" + cat + "/" + a.Slug
 }
 
+var focusRE = regexp.MustCompile(`^(100|[1-9]?[0-9])% (100|[1-9]?[0-9])%$`)
+
+// ValidFocus reports whether f is a CSS object-position like "50% 30%".
+func ValidFocus(f string) bool { return focusRE.MatchString(f) }
+
+// ImagePortrait: the photo is taller than wide (e.g. a 4:5 carousel cover).
+func (a Article) ImagePortrait() bool { return a.ImageW > 0 && a.ImageH > a.ImageW }
+
+// ImageFocus is the CSS object-position used when a photo is cropped into a card.
+// Default leans upward so faces and headline text survive the crop.
+func (a Article) ImageFocus() string {
+	if ValidFocus(a.ImageFocusRaw) {
+		return a.ImageFocusRaw
+	}
+	if a.ImagePortrait() {
+		return "50% 15%"
+	}
+	return "50% 30%"
+}
+
+// ImageHeightFor is the photo's height at width w, for the img height attribute (16:9 fallback).
+func (a Article) ImageHeightFor(w int) int {
+	if a.ImageW <= 0 || a.ImageH <= 0 {
+		return w * 9 / 16
+	}
+	return w * a.ImageH / a.ImageW
+}
+
 func (a Article) TypeLabel() string { return TypeLabels[a.Type] }
 
 const articleSelect = `SELECT a.id, a.site_id, a.type, a.status, a.title, a.slug, a.summary, a.body_md, a.intinya, a.highlight,
@@ -80,7 +112,8 @@ const articleSelect = `SELECT a.id, a.site_id, a.type, a.status, a.title, a.slug
 	COALESCE(a.editor_id,0), COALESCE(e.name,''),
 	COALESCE(a.image_id,0), COALESCE(m.path,''), COALESCE(m.credit,''), COALESCE(m.caption,''), COALESCE(m.variants::text,'{}'),
 	a.source_name, a.source_url, a.ai_assisted, a.engine_ref, a.unpublish_note, a.editor_note,
-	a.published_at, a.scheduled_at, a.created_at, a.updated_at
+	a.published_at, a.scheduled_at, a.created_at, a.updated_at,
+	COALESCE(m.width,0), COALESCE(m.height,0), COALESCE(m.focus,'')
 	FROM articles a
 	LEFT JOIN categories c ON c.id=a.category_id
 	LEFT JOIN regions r ON r.id=a.region_id
@@ -95,7 +128,8 @@ func scanArticle(sc interface{ Scan(...any) error }) (Article, error) {
 		&a.AuthorID, &a.AuthorName, &a.AuthorSlug, &a.AuthorTitle, &a.EditorID, &a.EditorName,
 		&a.ImageID, &a.ImagePath, &a.ImageCredit, &a.ImageCaption, &a.ImageVariants,
 		&a.SourceName, &a.SourceURL, &a.AIAssisted, &a.EngineRef, &a.UnpublishNote, &a.EditorNote,
-		&a.PublishedAt, &a.ScheduledAt, &a.CreatedAt, &a.UpdatedAt)
+		&a.PublishedAt, &a.ScheduledAt, &a.CreatedAt, &a.UpdatedAt,
+		&a.ImageW, &a.ImageH, &a.ImageFocusRaw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return a, ErrNotFound
 	}
@@ -268,8 +302,16 @@ func (s *Store) PublishDue(ctx context.Context) (int64, error) {
 	return res.RowsAffected()
 }
 
+// DeleteArticle removes an article for good (tags, social links, redirects and versions cascade).
+// Callers check permissions: authors may delete their drafts, pemred/admin anything.
+// SetMediaFocus stores the crop focus ("x% y%", or "" for automatic) of a photo.
+func (s *Store) SetMediaFocus(ctx context.Context, mediaID int64, focus string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE media SET focus=$2 WHERE id=$1`, mediaID, focus)
+	return err
+}
+
 func (s *Store) DeleteArticle(ctx context.Context, id int64) error {
-	_, err := s.DB.ExecContext(ctx, `DELETE FROM articles WHERE id=$1 AND status IN ('draft','review')`, id)
+	_, err := s.DB.ExecContext(ctx, `DELETE FROM articles WHERE id=$1`, id)
 	return err
 }
 
